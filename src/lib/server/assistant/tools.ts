@@ -1,6 +1,7 @@
 import { tool, type InferUITools } from 'ai';
 import * as z from 'zod';
 import { chartSpec } from '#lib/consulta.ts';
+import { toUf } from '#lib/uf.ts';
 import { readOnly, type QueryResult } from '../catalog/consulta.ts';
 import type { Query } from '../catalog/query.ts';
 import type { Db } from '../db/client.ts';
@@ -68,6 +69,14 @@ export function createTools(deps: ToolDeps, firstRef: number) {
 				if (missing.length > 0) {
 					throw new Error(
 						`Colunas ausentes no resultado: ${missing.join(', ')}. Colunas disponíveis: ${result.columns.join(', ')}.`
+					);
+				}
+				if (
+					spec.tipo === 'mapa' &&
+					result.rows.some((row) => toUf(String(row[spec.categoria] ?? '')) === null)
+				) {
+					throw new Error(
+						'Para mapa, a coluna de categoria precisa trazer a sigla ou o nome da UF em todas as linhas.'
 					);
 				}
 				return { spec, ...result };

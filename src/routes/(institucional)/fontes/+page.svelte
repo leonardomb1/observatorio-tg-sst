@@ -39,6 +39,10 @@
 	<li>
 		Tabelas de referência: CID-10, CBO, CNAE (IBGE/Concla), municípios (IBGE) e tabelas do eSocial.
 	</li>
+	<li>
+		<a href="https://servicodados.ibge.gov.br/api/docs/malhas">Malhas territoriais</a> dos estados e municípios,
+		IBGE, usadas nos mapas.
+	</li>
 </ul>
 
 <h2>Limites que valem para todo o site</h2>

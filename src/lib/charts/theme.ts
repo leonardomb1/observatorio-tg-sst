@@ -52,6 +52,7 @@ function readChartTokens() {
 	const raw = (name: string) => css.getPropertyValue(name).trim();
 	const color = (name: string) => toRgba(raw(name));
 	return {
+		paper: color('--paper'),
 		ink: color('--ink'),
 		ink2: color('--ink-2'),
 		ink3: color('--ink-3'),

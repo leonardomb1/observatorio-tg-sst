@@ -5,9 +5,9 @@ import { formatDecimal, formatInteger } from './format.ts';
 
 export const chartSpec = z.object({
 	tipo: z
-		.enum(['colunas', 'barras', 'linhas'])
+		.enum(['colunas', 'barras', 'linhas', 'mapa'])
 		.describe(
-			'colunas para séries anuais, barras horizontais para ranking de categorias, linhas para comparar séries no tempo'
+			'colunas para séries anuais, barras horizontais para ranking de categorias, linhas para comparar séries no tempo, mapa para comparar as UFs no mapa do Brasil (categoria com a sigla ou o nome da UF, uma série)'
 		),
 	categoria: z
 		.string()

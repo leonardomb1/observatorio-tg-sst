@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { answerChart } from '#lib/charts/answer.ts';
+	import BrazilMap from '#lib/charts/BrazilMap.svelte';
 	import Chart from '#lib/charts/Chart.svelte';
-	import { specFormat, type ConsultaMessage } from '#lib/consulta.ts';
+	import { numeric, specFormat, type ConsultaMessage } from '#lib/consulta.ts';
+	import { toUf } from '#lib/uf.ts';
 	import type { Column } from '#lib/csv.ts';
 	import Panel from '#lib/components/Panel.svelte';
 	import { catSource } from '#lib/sources.ts';
@@ -166,13 +168,24 @@
 						slug="consulta-{message.id}-{index}"
 					>
 						{#snippet chart()}
-							<Chart
-								label={spec.titulo}
-								height={spec.tipo === 'barras'
-									? `${Math.max(12, rows.length * 1.9 + 2)}rem`
-									: '18rem'}
-								option={(tokens) => answerChart(tokens, spec, rows)}
-							/>
+							{#if spec.tipo === 'mapa'}
+								<BrazilMap
+									label={spec.titulo}
+									{format}
+									items={rows.map((row) => ({
+										uf: toUf(String(row[spec.categoria] ?? '')) ?? '',
+										value: numeric(row[spec.series[0]?.coluna ?? ''])
+									}))}
+								/>
+							{:else}
+								<Chart
+									label={spec.titulo}
+									height={spec.tipo === 'barras'
+										? `${Math.max(12, rows.length * 1.9 + 2)}rem`
+										: '18rem'}
+									option={(tokens) => answerChart(tokens, spec, rows)}
+								/>
+							{/if}
 						{/snippet}
 					</Panel>
 				</div>

@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import BrazilMap from '#lib/charts/BrazilMap.svelte';
 	import Chart from '#lib/charts/Chart.svelte';
 	import { rankingBars } from '#lib/charts/options.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import StorySection from '#lib/components/StorySection.svelte';
-	import TileMap from '#lib/components/TileMap.svelte';
 	import { formatDecimal, formatInteger } from '#lib/format.ts';
 	import { leader, listNames, timesAbove } from '#lib/findings.ts';
 	import { catSource } from '#lib/sources.ts';
@@ -122,11 +124,13 @@
 		{/snippet}
 		{#snippet chart()}
 			<div class="split">
-				<TileMap
-					tiles={ufs.map((row) => ({ uf: row.uf, name: row.name, value: value(row) }))}
+				<BrazilMap
+					items={ufs.map((row) => ({ uf: row.uf, value: value(row) }))}
 					{format}
-					unit="{measure} por 100 mil vínculos"
-					reference={national}
+					label="Mapa da taxa de {measure} por estado em {filters.year}; clique em um estado para ver a série dele."
+					onselect={(uf) => {
+						void goto(resolve('/territorio/[uf]', { uf: uf.toLowerCase() }));
+					}}
 				/>
 				<div class="ranking">
 					<Chart

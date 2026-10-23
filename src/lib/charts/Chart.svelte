@@ -11,9 +11,11 @@
 		/** One-sentence takeaway read by screen readers in place of the chart. */
 		label: string;
 		height?: string;
+		/** Receives the name of the clicked item, e.g. a state's abbreviation on a map. */
+		onselect?: ((name: string) => void) | undefined;
 	}
 
-	let { option, label, height = '20rem' }: Props = $props();
+	let { option, label, height = '20rem', onselect }: Props = $props();
 
 	/** Entrance and update timing; under reduced motion ECharts draws the final frame at once. */
 	function withMotion(built: EChartsCoreOption): EChartsCoreOption {
@@ -45,6 +47,9 @@
 		function init() {
 			tokens = registerTheme();
 			chart = echarts.init(element, THEME, { renderer: 'svg', locale: 'PT-br' });
+			chart.on('click', (params) => {
+				if (typeof params.name === 'string') onselect?.(params.name);
+			});
 			resize.observe(element);
 			stopWatching = watchColorScheme(() => {
 				const next = registerTheme();
