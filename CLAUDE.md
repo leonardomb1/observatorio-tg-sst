@@ -13,6 +13,7 @@ SvelteKit 3 (adapter-node) · Svelte 5 runes · TypeScript 6 strict · bun for i
 ## Processes
 
 - Web app (`node build`) and ingestion worker (`node build-worker/main.js`, source `src/worker/main.ts`) run from the same image. The worker applies Drizzle migrations at start, claims `ingest_jobs` with `SKIP LOCKED`, and wakes on `NOTIFY ingest_jobs`.
+- Releases: tag `vX.Y.Z` on `main`; GitHub Actions (`.github/workflows/docker.yml`) pushes `ghcr.io/leonardomb1/observatorio-tg-sst:X.Y.Z`. Production (`~/remote/observatorio` on the Hetzner host, behind Caddy and the cloudflared tunnel) pins `OBSERVATORIO_VERSION` in its `.env` and runs `docker compose pull && docker compose up -d`.
 - Code shared with the worker (`src/lib/server/db/client.ts`, `src/lib/server/rag/*` except `context.ts`) must not import `$app/*`.
 - RAG: Voyage `voyage-4@1024` with `input_type`, hybrid search (vector + Portuguese FTS + exact NR item code, RRF, Voyage rerank). NR texts come from the official PDFs uploaded in `/admin`, parsed per item by `rag/nr.ts`.
 - `/admin` is gated by Authentik OIDC (group `ADMIN_GROUP`); its cookies are scoped to `/admin` so public pages stay cacheable.

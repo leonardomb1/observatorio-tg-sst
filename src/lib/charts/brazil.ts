@@ -9,13 +9,38 @@ const ASPECT = 0.97;
 /** What a map covers: the 27 states, or the municipalities of one state. */
 export type MapScope = { kind: 'states' } | { kind: 'municipalities'; uf: string };
 
-const loaded = new Map<string, Promise<string>>();
+export interface LoadedMap {
+	name: string;
+	/** Drawn width over height of the boundaries, after the longitude scale. */
+	aspect: number;
+}
+
+const loaded = new Map<string, Promise<LoadedMap>>();
+
+function aspectOf(geo: unknown): number {
+	let [west, south, east, north] = [Infinity, Infinity, -Infinity, -Infinity];
+	const visit = (node: unknown) => {
+		if (!Array.isArray(node)) return;
+		if (typeof node[0] === 'number' && typeof node[1] === 'number') {
+			west = Math.min(west, node[0]);
+			east = Math.max(east, node[0]);
+			south = Math.min(south, node[1]);
+			north = Math.max(north, node[1]);
+			return;
+		}
+		for (const child of node) visit(child);
+	};
+	for (const feature of (geo as { features: { geometry: { coordinates: unknown } }[] }).features) {
+		visit(feature.geometry.coordinates);
+	}
+	return ((east - west) * ASPECT) / (north - south);
+}
 
 /**
- * Registers IBGE's boundaries for a scope once and returns the map's name. States come
+ * Registers IBGE's boundaries for a scope once and returns the map's name and proportions. States come
  * with the bundle on first use; each state's municipalities are a static file of their own.
  */
-export function loadMap(scope: MapScope): Promise<string> {
+export function loadMap(scope: MapScope): Promise<LoadedMap> {
 	const name = scope.kind === 'states' ? 'brasil-uf' : `municipios-${scope.uf}`;
 	let promise = loaded.get(name);
 	if (!promise) {
@@ -30,7 +55,7 @@ export function loadMap(scope: MapScope): Promise<string> {
 					);
 		promise = geo.then((json) => {
 			echarts.registerMap(name, json as never);
-			return name;
+			return { name, aspect: aspectOf(json) };
 		});
 		promise.catch(() => loaded.delete(name));
 		loaded.set(name, promise);
@@ -56,17 +81,16 @@ function breaksOf(values: readonly number[]): number[] {
 	);
 }
 
-/** Choropleth coloured by quintile, with a legend that names each range. */
-export function choropleth(
-	tokens: ChartTokens,
-	map: string,
-	scope: MapScope,
-	areas: readonly Area[],
-	format: (value: number) => string
-): EChartsCoreOption {
+export interface MapClass {
+	gte?: number;
+	lt?: number;
+	label: string;
+}
+
+/** The five quintile ranges of the values on screen, named for the legend. */
+export function mapClasses(areas: readonly Area[], format: (value: number) => string): MapClass[] {
 	const breaks = breaksOf(areas.map((area) => area.value).filter((value) => value !== null));
-	const labels = new Map(areas.map((area) => [area.key, area.label]));
-	const pieces = Array.from({ length: CLASSES }, (_, index) => {
+	return Array.from({ length: CLASSES }, (_, index) => {
 		const from = index === 0 ? undefined : breaks[index - 1];
 		const to = index === CLASSES - 1 ? undefined : breaks[index];
 		const label =
@@ -78,10 +102,27 @@ export function choropleth(
 		return {
 			...(from === undefined ? {} : { gte: from }),
 			...(to === undefined ? {} : { lt: to }),
-			label,
-			color: tokens.rates[index] ?? tokens.ink3
+			label
 		};
 	});
+}
+
+/**
+ * Choropleth coloured by quintile. The legend is drawn in HTML by the caller, so it can
+ * wrap on narrow screens.
+ */
+export function choropleth(
+	tokens: ChartTokens,
+	map: string,
+	scope: MapScope,
+	areas: readonly Area[],
+	format: (value: number) => string
+): EChartsCoreOption {
+	const labels = new Map(areas.map((area) => [area.key, area.label]));
+	const pieces = mapClasses(areas, format).map((piece, index) => ({
+		...piece,
+		color: tokens.rates[index] ?? tokens.ink3
+	}));
 	const states = scope.kind === 'states';
 	return {
 		tooltip: {
@@ -89,17 +130,7 @@ export function choropleth(
 			formatter: ({ name, value }: { name: string; value: unknown }) =>
 				`${labels.get(name) ?? name}: ${typeof value === 'number' && !Number.isNaN(value) ? format(value) : '—'}`
 		},
-		visualMap: {
-			type: 'piecewise',
-			pieces,
-			orient: 'horizontal',
-			left: 0,
-			bottom: 0,
-			itemWidth: 12,
-			itemHeight: 12,
-			itemGap: 12,
-			textStyle: { color: tokens.ink2 }
-		},
+		visualMap: { type: 'piecewise', show: false, pieces },
 		series: [
 			{
 				type: 'map',
@@ -107,8 +138,10 @@ export function choropleth(
 				nameProperty: states ? 'sigla' : 'cod',
 				roam: false,
 				aspectScale: ASPECT,
-				top: 8,
-				bottom: 48,
+				top: 2,
+				bottom: 2,
+				left: 2,
+				right: 2,
 				selectedMode: false,
 				itemStyle: {
 					areaColor: tokens.neutral,

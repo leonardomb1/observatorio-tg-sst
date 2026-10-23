@@ -3,7 +3,7 @@ name: observatorio
 services:
   app:
     container_name: observatorio-app
-    image: ghcr.io/leonardomb1/observatorio-tg-sst:latest
+    image: ghcr.io/leonardomb1/observatorio-tg-sst:${OBSERVATORIO_VERSION:-latest}
     build: .
     restart: unless-stopped
     env_file: .env
@@ -27,7 +27,7 @@ services:
         condition: service_started
 
   worker:
-    image: ghcr.io/leonardomb1/observatorio-tg-sst:latest
+    image: ghcr.io/leonardomb1/observatorio-tg-sst:${OBSERVATORIO_VERSION:-latest}
     build: .
     restart: unless-stopped
     command: ['node', 'build-worker/main.js']
