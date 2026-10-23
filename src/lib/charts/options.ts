@@ -2,6 +2,9 @@ import type { EChartsCoreOption } from 'echarts/core';
 import type { YearStatus } from '#lib/status.ts';
 import type { ChartTokens } from './theme.ts';
 
+/** Bars enter one after another, a beat apart, rather than all at once. */
+const staggered = (index: number) => index * 40;
+
 export interface RankItem {
 	label: string;
 	value: number | null;
@@ -31,6 +34,7 @@ export function rankingBars(
 			{
 				type: 'bar',
 				barCategoryGap: '30%',
+				animationDelay: staggered,
 				data: sorted.map((item) => ({
 					value: item.value,
 					itemStyle: { color: item.highlight ? tokens.accent : tokens.ink3 }
@@ -84,6 +88,7 @@ export function yearBars(
 			{
 				type: 'bar',
 				barCategoryGap: '35%',
+				animationDelay: staggered,
 				data: points.map((point) => ({
 					value: point.value,
 					itemStyle:
@@ -108,7 +113,11 @@ export function yearBars(
 	};
 }
 
-/** Two series over years, the subject in ink and the reference in grey, labelled at the line end. */
+/**
+ * Two series over years, the subject in ink and the reference in grey, labelled
+ * at the line end. Years empty in both series at either edge are dropped: the
+ * end label cannot be placed on a null while the line is drawing in.
+ */
 export function compareLines(
 	tokens: ChartTokens,
 	years: readonly number[],
@@ -116,10 +125,15 @@ export function compareLines(
 	reference: { label: string; values: (number | null)[] },
 	format: (value: number) => string
 ): EChartsCoreOption {
+	const filled = years.map(
+		(_, index) => subject.values[index] != null || reference.values[index] != null
+	);
+	const first = filled.indexOf(true);
+	const end = filled.lastIndexOf(true) + 1;
 	const line = (name: string, values: (number | null)[], color: string, width: number) => ({
 		type: 'line',
 		name,
-		data: values,
+		data: values.slice(first, end),
 		connectNulls: false,
 		showSymbol: true,
 		symbolSize: 5,
@@ -129,7 +143,7 @@ export function compareLines(
 	});
 	return {
 		grid: { left: 8, right: 96, top: 16, bottom: 8, containLabel: true },
-		xAxis: { type: 'category', data: years.map(String), boundaryGap: false },
+		xAxis: { type: 'category', data: years.slice(first, end).map(String), boundaryGap: false },
 		yAxis: { type: 'value', axisLabel: { formatter: (value: number) => format(value) } },
 		series: [
 			line(reference.label, reference.values, tokens.ink3, 1.5),

@@ -58,7 +58,11 @@ const monthYear = new Intl.DateTimeFormat('pt-BR', {
 
 /** "ago. de 2026" → "ago/2026", the form used in Brazilian statistical notes. */
 export function formatMonthYear(year: number, month: number): string {
-	const parts = monthYear.formatToParts(new Date(Date.UTC(year, month - 1, 1)));
-	const name = parts.find((part) => part.type === 'month')?.value.replace('.', '') ?? String(month);
-	return `${name}/${year}`;
+	return `${formatMonth(month)}/${year}`;
+}
+
+/** Short month name without the abbreviation dot: 8 → "ago". */
+export function formatMonth(month: number): string {
+	const parts = monthYear.formatToParts(new Date(Date.UTC(2000, month - 1, 1)));
+	return parts.find((part) => part.type === 'month')?.value.replace('.', '') ?? String(month);
 }

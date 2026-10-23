@@ -44,7 +44,7 @@
 
 <div class="l-stack page">
 	<header class="l-stack">
-		<a href={resolve('/territorio')} class="back">← Estados</a>
+		<a href="{resolve('/(historia)')}#estados" class="back">← Estados</a>
 		<h1>{data.uf}</h1>
 		{#if multiple}
 			<p>
@@ -58,22 +58,30 @@
 		<section class="kpis" aria-label="Indicadores de {year}">
 			<KpiCard
 				label="Taxa de acidentes"
-				value={formatDecimal(current.accidentRate)}
+				value={current.accidentRate}
+				format={(value) => formatDecimal(value)}
 				unit="por 100 mil vínculos"
 				context="Brasil: {formatDecimal(national.accidentRate)}"
 			/>
 			<KpiCard
 				label="Taxa de óbitos"
-				value={formatDecimal(current.deathRate, 2)}
+				value={current.deathRate}
+				format={(value) => formatDecimal(value, 2)}
 				unit="por 100 mil vínculos"
 				context="Brasil: {formatDecimal(national.deathRate, 2)}"
 			/>
 			<KpiCard
 				label="Acidentes com CAT"
-				value={formatInteger(current.allAccidents)}
+				value={current.allAccidents}
+				format={formatInteger}
 				context={String(year)}
 			/>
-			<KpiCard label="Óbitos" value={formatInteger(current.allDeaths)} context={String(year)} />
+			<KpiCard
+				label="Óbitos"
+				value={current.allDeaths}
+				format={formatInteger}
+				context={String(year)}
+			/>
 		</section>
 	{/if}
 

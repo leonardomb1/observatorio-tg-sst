@@ -139,6 +139,27 @@
 		opacity: 0.5;
 	}
 
+	[id] {
+		scroll-margin-block-start: calc(var(--header-height) + var(--space-4));
+	}
+
+	@media screen and (prefers-reduced-motion: no-preference) {
+		html:has([data-story]) {
+			scroll-behavior: smooth;
+		}
+
+		[data-reveal] {
+			transition:
+				opacity var(--duration-reveal) var(--ease-out),
+				translate var(--duration-reveal) var(--ease-out);
+		}
+
+		[data-reveal='pending'] {
+			opacity: 0;
+			translate: 0 var(--space-6);
+		}
+	}
+
 	.visually-hidden {
 		position: absolute;
 		inline-size: 1px;
