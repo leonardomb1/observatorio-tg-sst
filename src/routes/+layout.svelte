@@ -86,6 +86,11 @@
 				{/each}
 			</ul>
 		</nav>
+		<a
+			class="ask"
+			href={resolve('/consulta')}
+			aria-current={page.route.id?.startsWith('/consulta') ? 'page' : undefined}>Consulta</a
+		>
 	</div>
 </header>
 
@@ -183,6 +188,20 @@
 	.sections a[aria-current] {
 		color: var(--ink);
 		text-decoration-color: var(--ink);
+	}
+
+	.ask {
+		padding: var(--space-1) var(--space-3);
+		border: 1px solid var(--rule-strong);
+		border-radius: var(--radius);
+		font-size: var(--text-sm);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.ask:hover,
+	.ask[aria-current] {
+		border-color: var(--ink);
 	}
 
 	main {
