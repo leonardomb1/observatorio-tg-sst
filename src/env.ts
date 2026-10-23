@@ -63,13 +63,22 @@ export const variables = defineEnvVars({
 		description: 'Questions each visitor (anonymous cookie) may ask the assistant per day.',
 		schema: z.string().default('30').transform(Number).pipe(z.number().int().positive())
 	},
-	ASSISTANT_CONNECTION_DAILY: {
+	ASSISTANT_CONNECTION_PER_MINUTE: {
 		description:
-			'Questions per network address per day, so clearing the cookie does not reset the quota.',
-		schema: z.string().default('60').transform(Number).pipe(z.number().int().positive())
+			'Questions per network address (or per event code) per minute; stops floods, not a classroom.',
+		schema: z.string().default('20').transform(Number).pipe(z.number().int().positive())
 	},
-	ASSISTANT_GLOBAL_DAILY: {
-		description: 'Questions the whole site may send to the model per day; caps the API bill.',
-		schema: z.string().default('1000').transform(Number).pipe(z.number().int().positive())
+	ASSISTANT_DAILY_BUDGET_USD: {
+		description:
+			'What the assistant may spend on the model per day, outside event codes. At 80% answers use lower effort; at 100% the assistant pauses until midnight.',
+		schema: z.string().default('10').transform(Number).pipe(z.number().positive())
+	},
+	TURNSTILE_SITE_KEY: {
+		description: 'Cloudflare Turnstile site key for the assistant start step (public).',
+		schema: optional
+	},
+	TURNSTILE_SECRET_KEY: {
+		description: 'Cloudflare Turnstile secret key.',
+		schema: optional
 	}
 });

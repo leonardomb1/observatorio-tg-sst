@@ -20,4 +20,8 @@
 	remaining={data.remaining}
 	configured={data.configured}
 	publishedUntil={data.publishedUntil}
+	started={data.started}
+	event={data.event}
+	paused={data.paused}
+	siteKey={data.turnstileSiteKey}
 />

@@ -50,9 +50,14 @@
 			<td>Até você apagá-las na própria consulta, ou enquanto o serviço estiver no ar</td>
 		</tr>
 		<tr>
+			<td>Registro de aceite: identificador anônimo, versão dos termos, data e código de evento</td>
+			<td>Provar que os termos da consulta foram aceitos</td>
+			<td>Enquanto o serviço estiver no ar</td>
+		</tr>
+		<tr>
 			<td>Contagem de perguntas por rede</td>
-			<td>Evitar abuso do assistente; só um resumo criptográfico do IP, em memória</td>
-			<td>Apagada à meia-noite</td>
+			<td>Evitar ataques ao assistente; só um resumo criptográfico do IP, em memória</td>
+			<td>Um minuto</td>
 		</tr>
 	</tbody>
 </table>
@@ -77,7 +82,10 @@
 <h2>Com quem os dados são compartilhados</h2>
 <ul>
 	<li>Hetzner (Alemanha): hospedagem do site e do banco de dados.</li>
-	<li>Cloudflare (Estados Unidos): distribuição do site e proteção contra ataques.</li>
+	<li>
+		Cloudflare (Estados Unidos): distribuição do site, proteção contra ataques e a verificação
+		Turnstile, que confirma que quem começa a consulta é uma pessoa.
+	</li>
 	<li>
 		Anthropic (Estados Unidos): processa as perguntas da consulta para gerar as respostas. Pela
 		política comercial da Anthropic, os dados enviados pela API não são usados para treinar modelos

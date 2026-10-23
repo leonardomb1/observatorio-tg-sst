@@ -129,7 +129,7 @@ export async function truncateFrom(db: Db, conversationId: string, keep: number)
 /** Counted when the question arrives, so a failed or cut stream still uses the quota. */
 export async function openUsage(
 	db: Db,
-	usage: { subject: string; conversationId: string; model: string }
+	usage: { subject: string; conversationId: string; model: string; eventCode: string | null }
 ): Promise<number> {
 	const [row] = await db.insert(assistantUsage).values(usage).returning({ id: assistantUsage.id });
 	if (!row) throw new Error('Uso não registrado');

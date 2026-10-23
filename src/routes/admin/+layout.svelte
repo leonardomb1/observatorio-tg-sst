@@ -8,7 +8,8 @@
 	const sections = [
 		{ href: resolve('/admin/documentos'), label: 'Documentos' },
 		{ href: resolve('/admin/busca'), label: 'Busca de teste' },
-		{ href: resolve('/admin/tarefas'), label: 'Tarefas' }
+		{ href: resolve('/admin/tarefas'), label: 'Tarefas' },
+		{ href: resolve('/admin/eventos'), label: 'Eventos' }
 	];
 </script>
 

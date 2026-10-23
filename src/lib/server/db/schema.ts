@@ -231,7 +231,36 @@ export const assistantUsage = pgTable(
 		cacheWriteTokens: integer('cache_write_tokens').notNull().default(0),
 		steps: integer('steps').notNull().default(0),
 		finishReason: text('finish_reason'),
+		eventCode: text('event_code').references(() => eventCodes.code, { onDelete: 'set null' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(table) => [index('assistant_usage_subject').on(table.subject, table.createdAt)]
+	(table) => [
+		index('assistant_usage_subject').on(table.subject, table.createdAt),
+		index('assistant_usage_event').on(table.eventCode)
+	]
 );
+
+/** A visitor's acceptance of a given version of the terms, the clickwrap record. */
+export const assistantConsents = pgTable(
+	'assistant_consents',
+	{
+		visitorId: text('visitor_id').notNull(),
+		termsVersion: text('terms_version').notNull(),
+		eventCode: text('event_code').references(() => eventCodes.code, { onDelete: 'set null' }),
+		acceptedAt: timestamp('accepted_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [primaryKey({ columns: [table.visitorId, table.termsVersion] })]
+);
+
+/** Codes handed out at an event: a shared pool of questions for a time window. */
+export const eventCodes = pgTable('event_codes', {
+	code: text('code').primaryKey(),
+	label: text('label').notNull(),
+	startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+	endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+	questionPool: integer('question_pool').notNull(),
+	perVisitor: integer('per_visitor').notNull(),
+	createdBy: text('created_by').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	revokedAt: timestamp('revoked_at', { withTimezone: true })
+});

@@ -5,8 +5,10 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import type { ConsultaMessage } from '#lib/consulta.ts';
 	import Message from './Message.svelte';
+	import Start from './Start.svelte';
 
 	interface Props {
 		/** Null until the first question creates the conversation. */
@@ -16,9 +18,45 @@
 		remaining: number;
 		configured: boolean;
 		publishedUntil: { year: number; month: number };
+		/** False until the visitor accepted the terms in the start step. */
+		started: boolean;
+		event: { code: string; label: string } | null;
+		/** The daily budget is spent and no event code applies. */
+		paused: boolean;
+		siteKey: string | null;
 	}
 
-	let { id, title, initial, remaining, configured, publishedUntil }: Props = $props();
+	let {
+		id,
+		title,
+		initial,
+		remaining,
+		configured,
+		publishedUntil,
+		started,
+		event,
+		paused,
+		siteKey
+	}: Props = $props();
+
+	const eventFromLink = $derived(page.url.searchParams.get('evento'));
+	const open = $derived(started && !paused && remaining > 0);
+	let joinProblem = $state<string | null>(null);
+
+	async function joinEvent(code: string) {
+		joinProblem = null;
+		const response = await fetch(resolve('/consulta/evento'), {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ code })
+		});
+		if (response.ok) {
+			await invalidate('consulta:conversas');
+			return;
+		}
+		const body = (await response.json().catch(() => null)) as { message?: string } | null;
+		joinProblem = body?.message ?? 'Não foi possível usar o código.';
+	}
 
 	const SUGGESTIONS = [
 		'Qual estado teve a maior taxa de óbitos no último ano consolidado?',
@@ -72,7 +110,7 @@
 
 	async function ask(text: string) {
 		const question = text.trim();
-		if (!question || busy || remaining <= 0) return;
+		if (!question || busy || !open) return;
 		draft = '';
 		if (!conversationId) {
 			starting = true;
@@ -97,7 +135,7 @@
 	/** Replaces a question and everything after it, then asks it again. */
 	async function rewrite(message: ConsultaMessage, text: string) {
 		const keep = chat.messages.findIndex((each) => each.id === message.id);
-		if (keep < 0 || busy || remaining <= 0) return;
+		if (keep < 0 || busy || !open) return;
 		stuck = true;
 		await chat.sendMessage({ text, messageId: message.id }, { body: { keep } });
 	}
@@ -167,7 +205,7 @@
 					{message}
 					{publishedUntil}
 					streaming={chat.status === 'streaming' && index === chat.messages.length - 1}
-					onrewrite={message.role === 'user' && !busy && remaining > 0
+					onrewrite={message.role === 'user' && !busy && open
 						? (text) => {
 								void rewrite(message, text);
 							}
@@ -182,7 +220,23 @@
 
 	{#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-	{#if configured}
+	{#if configured && !started && siteKey}
+		<Start {siteKey} {eventFromLink} />
+	{:else if configured}
+		{#if eventFromLink && eventFromLink.toUpperCase() !== event?.code}
+			<div class="join">
+				<span
+					>Você chegou por um código de evento: <strong>{eventFromLink.toUpperCase()}</strong></span
+				>
+				<button
+					type="button"
+					onclick={() => {
+						void joinEvent(eventFromLink);
+					}}>Usar este código</button
+				>
+				{#if joinProblem}<span class="problem">{joinProblem}</span>{/if}
+			</div>
+		{/if}
 		<form class="composer" {onsubmit}>
 			{#if !stuck && !empty}
 				<button
@@ -206,10 +260,12 @@
 					{@attach fit}
 					rows="1"
 					maxlength="4000"
-					placeholder={remaining > 0
+					placeholder={open
 						? 'Pergunte sobre acidentes de trabalho ou normas regulamentadoras'
-						: 'Limite diário atingido'}
-					disabled={remaining <= 0}></textarea>
+						: paused
+							? 'A consulta atingiu o limite de hoje. Ela volta à meia-noite.'
+							: 'Você usou as perguntas disponíveis.'}
+					disabled={!open}></textarea>
 				{#if busy}
 					<button
 						type="button"
@@ -224,7 +280,7 @@
 						>
 					</button>
 				{:else}
-					<button type="submit" class="action" disabled={!draft.trim() || remaining <= 0}>
+					<button type="submit" class="action" disabled={!draft.trim() || !open}>
 						<span class="visually-hidden">Enviar pergunta</span>
 						<svg viewBox="0 0 16 16" aria-hidden="true"
 							><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" /></svg
@@ -239,20 +295,22 @@
 					></span
 				>
 				<span>
-					{remaining > 0
-						? `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`
-						: 'O limite volta à meia-noite'}
+					{event
+						? `${event.label}: ${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'}`
+						: remaining > 0
+							? `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`
+							: 'O limite volta à meia-noite'}
 				</span>
 			</div>
 		</form>
 
-		{#if empty}
+		{#if empty && started}
 			<ul class="suggestions" aria-label="Sugestões de pergunta">
 				{#each SUGGESTIONS as suggestion (suggestion)}
 					<li>
 						<button
 							type="button"
-							disabled={remaining <= 0}
+							disabled={!open}
 							onclick={() => {
 								void ask(suggestion);
 							}}>{suggestion}</button
@@ -334,6 +392,26 @@
 		align-items: center;
 		padding: var(--space-5) var(--gutter) var(--space-4);
 		background: linear-gradient(to bottom, transparent, var(--paper) var(--space-5));
+	}
+
+	.join {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		align-items: center;
+		padding: var(--space-3) var(--space-4);
+		border: 1px dashed var(--ink-3);
+		border-radius: var(--radius);
+		font-size: var(--text-sm);
+	}
+
+	.join button {
+		padding: var(--space-1) var(--space-3);
+		border: 1px solid var(--ink);
+		border-radius: var(--radius);
+		background: none;
+		color: var(--ink);
+		font: inherit;
 	}
 
 	.field,

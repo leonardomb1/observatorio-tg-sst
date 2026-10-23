@@ -36,6 +36,8 @@ interface Turn {
 	onMessages: (messages: UIMessage[], complete: boolean) => Promise<void>;
 	onTotals: (totals: Totals) => Promise<void>;
 	signal: AbortSignal;
+	/** Lowered when the day's budget is nearly spent. */
+	effort: 'low' | 'medium';
 }
 
 /** Citation numbers keep growing across the conversation, so [n] never points at two sources. */
@@ -72,7 +74,7 @@ export async function runAgent(model: LanguageModel, deps: ToolDeps, turn: Turn)
 		providerOptions: {
 			anthropic: {
 				thinking: { type: 'adaptive', display: 'updates' },
-				effort: 'medium',
+				effort: turn.effort,
 				cacheControl: { type: 'ephemeral' },
 				fallbacks: 'default'
 			} satisfies AnthropicLanguageModelOptions

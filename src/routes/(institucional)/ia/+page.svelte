@@ -52,8 +52,9 @@
 
 <h2>Limite de uso</h2>
 <p>
-	Para manter o serviço gratuito, há um limite diário de perguntas por pessoa e para o site como um
-	todo. O limite volta à meia-noite, no horário de Brasília.
+	Para manter o serviço gratuito, cada pessoa tem um número de perguntas por dia, e o site tem um
+	orçamento diário. Os limites voltam à meia-noite, no horário de Brasília. Em eventos, um código de
+	evento dá à sala um total próprio de perguntas.
 </p>
 
 <h2>Respostas erradas</h2>

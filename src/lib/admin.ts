@@ -28,3 +28,14 @@ const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyl
 export function formatDateTime(value: Date | string | null): string {
 	return value ? dateTime.format(new Date(value)) : '—';
 }
+
+/** How long an event code stays valid, from the moment it is created. */
+export const EVENT_DURATIONS = {
+	'4h': { hours: 4, label: '4 horas' },
+	'8h': { hours: 8, label: '8 horas' },
+	'1d': { hours: 24, label: '1 dia' },
+	'3d': { hours: 72, label: '3 dias' },
+	'7d': { hours: 168, label: '7 dias' }
+} as const;
+
+export type EventDuration = keyof typeof EVENT_DURATIONS;

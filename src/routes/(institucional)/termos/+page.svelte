@@ -44,6 +44,10 @@
 			>Inteligência artificial</a
 		>.
 	</li>
+	<li>
+		Códigos de evento valem pelo período e pelo total de perguntas definidos pelo autor, e podem ser
+		encerrados a qualquer momento.
+	</li>
 	<li>A consulta não é destinada a menores de 18 anos.</li>
 </ul>
 
