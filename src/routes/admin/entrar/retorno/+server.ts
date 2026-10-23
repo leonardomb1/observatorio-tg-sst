@@ -1,8 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import * as z from 'zod';
-import { adminGroup, callbackUri, oidcConfig } from '#lib/server/auth/config.ts';
+import { adminGroup, assistantGroup, callbackUri, oidcConfig } from '#lib/server/auth/config.ts';
 import { exchange } from '#lib/server/auth/oidc.ts';
-import { COOKIE_PATH, createSession, FLOW_COOKIE } from '#lib/server/auth/session.ts';
+import { createSession, FLOW_COOKIE, FLOW_PATH, scopeOf } from '#lib/server/auth/session.ts';
 import type { RequestHandler } from './$types';
 
 const Flow = z.object({ state: z.string(), verifier: z.string(), target: z.string() });
@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	if (!oidcConfig) error(503, 'Login de administração não configurado.');
 
 	const raw = cookies.get(FLOW_COOKIE);
-	cookies.delete(FLOW_COOKIE, { path: COOKIE_PATH, secure: url.protocol === 'https:' });
+	cookies.delete(FLOW_COOKIE, { path: FLOW_PATH, secure: url.protocol === 'https:' });
 	const flow = raw
 		? Flow.safeParse(JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')))
 		: null;
@@ -34,13 +34,16 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		callbackUri(url)
 	);
 	const groups = claims.groups ?? [];
-	if (!groups.includes(adminGroup)) {
-		error(403, `Acesso restrito ao grupo “${adminGroup}”.`);
+	const scope = scopeOf(flow.data.target);
+	const required = scope === 'admin' ? adminGroup : assistantGroup;
+	if (required && !groups.includes(required)) {
+		error(403, `Acesso restrito ao grupo “${required}”.`);
 	}
 
 	await createSession(
 		cookies,
 		url,
+		scope,
 		{
 			subject: claims.sub,
 			username: claims.preferred_username ?? claims.sub,

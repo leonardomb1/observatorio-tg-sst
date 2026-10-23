@@ -16,6 +16,7 @@ SvelteKit 3 (adapter-node) · Svelte 5 runes · TypeScript 6 strict · bun for i
 - Code shared with the worker (`src/lib/server/db/client.ts`, `src/lib/server/rag/*` except `context.ts`) must not import `$app/*`.
 - RAG: Voyage `voyage-4@1024` with `input_type`, hybrid search (vector + Portuguese FTS + exact NR item code, RRF, Voyage rerank). NR texts come from the official PDFs uploaded in `/admin`, parsed per item by `rag/nr.ts`.
 - `/admin` is gated by Authentik OIDC (group `ADMIN_GROUP`); its cookies are scoped to `/admin` so public pages stay cacheable.
+- `/consulta` is the assistant: `claude-sonnet-5-5` via the AI SDK (`server/assistant/`, no `$app` imports so evals can drive `runAgent`). Same Authentik login with a cookie scoped to `/consulta` (optional `ASSISTANT_GROUP`), daily quota `ASSISTANT_DAILY_QUESTIONS`. Tools: guarded SELECT over `dm_sst` (`catalog/consulta.ts`), charts built from re-run SQL, RAG search with `[n]` citations. Conversation history is append-only: Sonnet 5.5 rejects edited history, so never rewrite or regenerate stored messages.
 
 ## House rules
 
