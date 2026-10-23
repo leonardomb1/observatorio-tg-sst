@@ -21,7 +21,7 @@ export function codeFrom(label: string): string {
 		.replace(/[^A-Z0-9]+/g, '-')
 		.replace(/^-|-$/g, '')
 		.slice(0, 20);
-	return `${stem || 'EVENTO'}-${randomBytes(2).toString('hex').toUpperCase()}`;
+	return `${stem || 'EVENTO'}-${randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
 /** The code if it exists, is not revoked and its window includes now. */
