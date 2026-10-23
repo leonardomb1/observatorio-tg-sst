@@ -53,5 +53,18 @@ export const variables = defineEnvVars({
 	ADMIN_GROUP: {
 		description: 'Authentik group whose members may use /admin.',
 		schema: z.string().default('Observatório Admins')
+	},
+	ANTHROPIC_API_KEY: {
+		description:
+			'Claude API key for the assistant. Without it /consulta says it is not configured.',
+		schema: optional
+	},
+	ASSISTANT_GROUP: {
+		description: 'Authentik group allowed to use the assistant. Empty means any signed-in user.',
+		schema: optional
+	},
+	ASSISTANT_DAILY_QUESTIONS: {
+		description: 'Questions each user may ask the assistant per day.',
+		schema: z.string().default('30').transform(Number).pipe(z.number().int().positive())
 	}
 });

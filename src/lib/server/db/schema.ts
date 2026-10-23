@@ -187,3 +187,51 @@ export const sessions = pgTable(
 	},
 	(table) => [index('sessions_expires').on(table.expiresAt)]
 );
+
+export const conversations = pgTable(
+	'conversations',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		subject: text('subject').notNull(),
+		title: text('title'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [index('conversations_subject').on(table.subject, table.updatedAt)]
+);
+
+/** Append-only: preserved thinking rejects a history whose earlier turns were edited. */
+export const conversationMessages = pgTable(
+	'conversation_messages',
+	{
+		id: text('id').primaryKey(),
+		conversationId: uuid('conversation_id')
+			.notNull()
+			.references(() => conversations.id, { onDelete: 'cascade' }),
+		seq: integer('seq').notNull(),
+		role: text('role').notNull(),
+		message: jsonb('message').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [uniqueIndex('conversation_messages_seq').on(table.conversationId, table.seq)]
+);
+
+export const assistantUsage = pgTable(
+	'assistant_usage',
+	{
+		id: bigserial('id', { mode: 'number' }).primaryKey(),
+		subject: text('subject').notNull(),
+		conversationId: uuid('conversation_id').references(() => conversations.id, {
+			onDelete: 'set null'
+		}),
+		model: text('model').notNull(),
+		inputTokens: integer('input_tokens').notNull().default(0),
+		outputTokens: integer('output_tokens').notNull().default(0),
+		cacheReadTokens: integer('cache_read_tokens').notNull().default(0),
+		cacheWriteTokens: integer('cache_write_tokens').notNull().default(0),
+		steps: integer('steps').notNull().default(0),
+		finishReason: text('finish_reason'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [index('assistant_usage_subject').on(table.subject, table.createdAt)]
+);
