@@ -28,9 +28,10 @@ export async function beginLogin(
 	redirect(303, start.url, { external: [new URL(oidcConfig.issuer).origin] });
 }
 
+/** Both scopes return to the root, the only post-logout URI registered in Authentik. */
 export async function endLogin(url: URL, cookies: Cookies, scope: Scope): Promise<never> {
 	const idToken = await destroySession(cookies, url, scope);
-	const home = new URL(scope === 'admin' ? '/' : '/consulta', url).toString();
+	const home = new URL('/', url).toString();
 	const target = oidcConfig ? await endSessionUrl(oidcConfig, idToken, home) : null;
 	if (!target || !oidcConfig) redirect(303, home);
 	redirect(303, target, { external: [new URL(oidcConfig.issuer).origin] });
