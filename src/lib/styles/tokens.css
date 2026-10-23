@@ -53,6 +53,22 @@
 		--measure: 68ch;
 		--page-max: 75rem;
 		--gutter: clamp(1rem, 4vw, 2rem);
+		--header-height: 4rem;
+
+		--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+		--duration-reveal: 700ms;
+
+		--month-ok: var(--neutral);
+		--month-low: var(--rate-2);
+		--month-gap: var(--rate-4);
+		--month-missing: var(--ink);
+		--month-atypical: var(--below);
+	}
+
+	@media (width < 48rem) {
+		:root {
+			--header-height: 6rem;
+		}
 	}
 
 	:root[data-theme='dark'] {

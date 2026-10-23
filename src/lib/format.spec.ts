@@ -3,6 +3,7 @@ import {
 	formatCompact,
 	formatDecimal,
 	formatInteger,
+	formatMonth,
 	formatMonthYear,
 	formatPercent,
 	formatPointsDelta,
@@ -45,5 +46,6 @@ describe('pt-BR number formatting', () => {
 	it('formats month and year the way statistical notes do', () => {
 		expect(formatMonthYear(2026, 8)).toBe('ago/2026');
 		expect(formatMonthYear(2023, 12)).toBe('dez/2023');
+		expect(formatMonth(5)).toBe('mai');
 	});
 });

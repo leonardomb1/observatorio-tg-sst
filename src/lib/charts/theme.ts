@@ -95,7 +95,6 @@ function buildTheme(tokens: ChartTokens) {
 		color: [tokens.ink, tokens.ink3, tokens.accent],
 		backgroundColor: 'transparent',
 		textStyle: { color: tokens.ink, fontFamily: tokens.fontSans },
-		animationDuration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300,
 		grid: { left: 8, right: 48, top: 24, bottom: 8, containLabel: true },
 		categoryAxis,
 		valueAxis,

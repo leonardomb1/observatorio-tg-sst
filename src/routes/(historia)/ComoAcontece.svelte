@@ -1,0 +1,224 @@
+<script lang="ts">
+	import Chart from '#lib/charts/Chart.svelte';
+	import { rankingBars } from '#lib/charts/options.ts';
+	import Panel from '#lib/components/Panel.svelte';
+	import type { Column } from '#lib/csv.ts';
+	import { formatInteger, formatPercent } from '#lib/format.ts';
+	import { catSource } from '#lib/sources.ts';
+	import type { PageData } from './$types';
+
+	interface Props {
+		calendar: PageData['calendar'];
+		causes: Awaited<PageData['causes']>;
+	}
+
+	let { calendar, causes }: Props = $props();
+
+	type Family = (typeof causes.agents)[number];
+	type FamilyRow = Family & { lethality: number | null };
+
+	const TOP = 10;
+
+	const source = $derived(catSource(calendar.publishedUntil));
+	const year = $derived(causes.year);
+	const period = $derived(String(causes.year));
+	const cats = $derived(calendar.years.find((row) => row.year === causes.year)?.cats ?? null);
+
+	const lethality = (row: Family) =>
+		row.accidents > 0 ? (row.deaths / row.accidents) * 100_000 : null;
+	const withLethality = (rows: readonly Family[]): FamilyRow[] =>
+		rows.map((row) => ({ ...row, lethality: lethality(row) }));
+	const topByDeaths = (rows: readonly Family[]) =>
+		withLethality(rows.filter((row) => row.deaths > 0).slice(0, TOP));
+	const coverageOf = (rows: readonly Family[]) =>
+		cats ? rows.reduce((sum, row) => sum + row.accidents, 0) / cats : null;
+
+	const agents = $derived(topByDeaths(causes.agents));
+	const bodyParts = $derived(topByDeaths(causes.bodyParts));
+	const injuries = $derived(topByDeaths(causes.injuries));
+	const deadliest = $derived(
+		agents.reduce<(typeof agents)[number] | null>(
+			(best, row) => (best && (best.lethality ?? 0) >= (row.lethality ?? 0) ? best : row),
+			null
+		)
+	);
+	const agentDeaths = $derived(causes.agents.reduce((sum, row) => sum + row.deaths, 0));
+	const topShare = $derived(
+		agentDeaths > 0 ? agents.reduce((sum, row) => sum + row.deaths, 0) / agentDeaths : null
+	);
+
+	const familyColumns = (label: string): Column<FamilyRow>[] => [
+		{ key: 'family', label },
+		{
+			key: 'deaths',
+			label: 'Óbitos',
+			numeric: true,
+			format: (cell) => formatInteger(cell as number)
+		},
+		{
+			key: 'accidents',
+			label: 'Acidentes',
+			numeric: true,
+			format: (cell) => formatInteger(cell as number)
+		},
+		{
+			key: 'lethality',
+			label: 'Óbitos por 100 mil acidentes',
+			numeric: true,
+			format: (cell) => formatInteger(cell as number | null)
+		}
+	];
+</script>
+
+<div class="l-grid panels">
+	<Panel
+		title={agents[0]
+			? `${agents[0].family} é o agente com mais óbitos em ${year}`
+			: `Óbitos por agente causador, ${year}`}
+		subtitle="Óbitos registrados na CAT por família de agente causador, {year}, {TOP} famílias com mais óbitos"
+		status="consolidado"
+		{period}
+		{source}
+		columns={familyColumns('Agente causador')}
+		rows={withLethality(causes.agents)}
+		slug="obitos-por-agente-{year}"
+	>
+		{#snippet note()}
+			{#if topShare !== null}
+				<p>
+					As {TOP} famílias do gráfico somam {formatPercent(topShare)} dos óbitos com agente informado.
+				</p>
+			{/if}
+			{@render coverageNote(coverageOf(causes.agents), 'agente causador')}
+			<p>“Nic” é a abreviação da fonte para “não incluído em outra classificação”.</p>
+		{/snippet}
+		{#snippet chart()}
+			<Chart
+				label="As {TOP} famílias de agente causador com mais óbitos em {year}."
+				height="24rem"
+				option={(tokens) =>
+					rankingBars(
+						tokens,
+						agents.map((row) => ({ label: row.family, value: row.deaths })),
+						(value) => formatInteger(value)
+					)}
+			/>
+		{/snippet}
+	</Panel>
+
+	<Panel
+		title={deadliest?.lethality
+			? `${deadliest.family}: ${formatInteger(deadliest.lethality)} óbitos a cada 100 mil acidentes`
+			: `Letalidade por agente causador, ${year}`}
+		subtitle="Óbitos por 100 mil acidentes, {year}, entre as {TOP} famílias de agente com mais óbitos"
+		status="consolidado"
+		{period}
+		{source}
+		columns={familyColumns('Agente causador')}
+		rows={agents}
+		slug="letalidade-por-agente-{year}"
+	>
+		{#snippet note()}
+			<p>
+				A letalidade só é calculada para as famílias com mais óbitos, todas com mais de mil
+				acidentes no ano. Em famílias pequenas, poucos casos produziriam taxas extremas.
+			</p>
+			<p>São os mesmos agentes do gráfico de óbitos; o mais letal está destacado.</p>
+		{/snippet}
+		{#snippet chart()}
+			<Chart
+				label="Óbitos por 100 mil acidentes nas {TOP} famílias de agente com mais óbitos em {year}."
+				height="24rem"
+				option={(tokens) =>
+					rankingBars(
+						tokens,
+						agents.map((row) => ({
+							label: row.family,
+							value: row.lethality,
+							highlight: row.family === deadliest?.family
+						})),
+						(value) => formatInteger(value)
+					)}
+			/>
+		{/snippet}
+	</Panel>
+
+	<Panel
+		title={bodyParts[0]
+			? `${bodyParts[0].family}: a parte do corpo mais presente nos óbitos`
+			: `Óbitos por parte do corpo atingida, ${year}`}
+		subtitle="Óbitos registrados na CAT por parte do corpo atingida, {year}, {TOP} com mais óbitos"
+		status="consolidado"
+		{period}
+		{source}
+		columns={familyColumns('Parte do corpo')}
+		rows={withLethality(causes.bodyParts)}
+		slug="obitos-por-parte-do-corpo-{year}"
+	>
+		{#snippet note()}
+			<p>
+				Nos acidentes não fatais a parte mais atingida é outra: a tabela traz acidentes e óbitos de
+				todas as partes.
+			</p>
+			{@render coverageNote(coverageOf(causes.bodyParts), 'parte do corpo')}
+		{/snippet}
+		{#snippet chart()}
+			<Chart
+				label="As {TOP} partes do corpo com mais óbitos em {year}."
+				height="24rem"
+				option={(tokens) =>
+					rankingBars(
+						tokens,
+						bodyParts.map((row) => ({ label: row.family, value: row.deaths })),
+						(value) => formatInteger(value)
+					)}
+			/>
+		{/snippet}
+	</Panel>
+
+	<Panel
+		title={injuries[0]
+			? `${injuries[0].family}: a lesão mais presente nos óbitos`
+			: `Óbitos por natureza da lesão, ${year}`}
+		subtitle="Óbitos registrados na CAT por natureza da lesão, {year}, {TOP} com mais óbitos"
+		status="consolidado"
+		{period}
+		{source}
+		columns={familyColumns('Natureza da lesão')}
+		rows={withLethality(causes.injuries)}
+		slug="obitos-por-natureza-da-lesao-{year}"
+	>
+		{#snippet note()}
+			{@render coverageNote(coverageOf(causes.injuries), 'natureza da lesão')}
+		{/snippet}
+		{#snippet chart()}
+			<Chart
+				label="As {TOP} naturezas de lesão com mais óbitos em {year}."
+				height="24rem"
+				option={(tokens) =>
+					rankingBars(
+						tokens,
+						injuries.map((row) => ({ label: row.family, value: row.deaths })),
+						(value) => formatInteger(value)
+					)}
+			/>
+		{/snippet}
+	</Panel>
+</div>
+
+{#snippet coverageNote(share: number | null, field: string)}
+	{#if share !== null && share < 0.9995}
+		<p>
+			Esta classificação cobre {formatPercent(share)} das {formatInteger(cats)} CATs de {year}; as
+			demais não têm {field} preenchido.
+		</p>
+	{/if}
+	<p>Os nomes das categorias vêm da tabela da CAT, abreviados e sem acentos na origem.</p>
+{/snippet}
+
+<style>
+	.panels {
+		--grid-min: 30rem;
+		--grid-gap: var(--space-7) var(--space-6);
+	}
+</style>
