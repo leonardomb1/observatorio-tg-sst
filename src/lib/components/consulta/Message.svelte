@@ -1,26 +1,57 @@
 <script lang="ts">
 	import { answerChart } from '#lib/charts/answer.ts';
 	import Chart from '#lib/charts/Chart.svelte';
-	import type { ConsultaMessage } from '#lib/consulta.ts';
-	import { specFormat } from '#lib/consulta.ts';
+	import { specFormat, type ConsultaMessage } from '#lib/consulta.ts';
 	import type { Column } from '#lib/csv.ts';
-	import DataTable from '#lib/components/DataTable.svelte';
 	import Panel from '#lib/components/Panel.svelte';
-	import { formatInteger } from '#lib/format.ts';
 	import { catSource } from '#lib/sources.ts';
 	import Markdown from './Markdown.svelte';
+	import Steps from './Steps.svelte';
 
+	type Part = ConsultaMessage['parts'][number];
 	type Row = Record<string, string | number | null>;
+	type Segment =
+		| { kind: 'steps'; parts: Part[] }
+		| { kind: 'text'; text: string }
+		| { kind: 'chart'; part: Extract<Part, { type: 'tool-mostrar_grafico' }> };
 
 	interface Props {
 		message: ConsultaMessage;
 		publishedUntil: { year: number; month: number };
+		/** True while this message is still being streamed. */
+		streaming: boolean;
 	}
 
-	let { message, publishedUntil }: Props = $props();
+	let { message, publishedUntil, streaming }: Props = $props();
+
+	let copied = $state(false);
 
 	const source = $derived(catSource(publishedUntil));
 
+	/** Consecutive reasoning and lookup parts collapse into one "steps" line, as in chat tools. */
+	const segments = $derived.by(() => {
+		const out: Segment[] = [];
+		for (const part of message.parts) {
+			if (part.type === 'text') {
+				if (part.text.trim()) out.push({ kind: 'text', text: part.text });
+			} else if (part.type === 'tool-mostrar_grafico') {
+				out.push({ kind: 'chart', part });
+			} else if (
+				part.type === 'reasoning' ||
+				part.type === 'tool-consultar_dados' ||
+				part.type === 'tool-buscar_documentos'
+			) {
+				const last = out.at(-1);
+				if (last?.kind === 'steps') last.parts.push(part);
+				else out.push({ kind: 'steps', parts: [part] });
+			}
+		}
+		return out;
+	});
+
+	const answerText = $derived(
+		message.parts.map((part) => (part.type === 'text' ? part.text : '')).join('\n\n')
+	);
 	const hits = $derived(
 		message.parts.flatMap((part) =>
 			part.type === 'tool-buscar_documentos' && part.state === 'output-available'
@@ -29,8 +60,9 @@
 		)
 	);
 	const cited = $derived.by(() => {
-		const text = message.parts.map((part) => (part.type === 'text' ? part.text : '')).join(' ');
-		const numbers = new Set([...text.matchAll(/\[(\d{1,4})\]/g)].map((match) => Number(match[1])));
+		const numbers = new Set(
+			[...answerText.matchAll(/\[(\d{1,4})\]/g)].map((match) => Number(match[1]))
+		);
 		return hits.filter((hit) => numbers.has(hit.ref));
 	});
 	const refs = $derived(new Set(hits.map((hit) => hit.ref)));
@@ -53,6 +85,12 @@
 					: `, p. ${hit.pageStart}`;
 		return `${item}${pages}`;
 	}
+
+	async function copy() {
+		await navigator.clipboard.writeText(answerText.trim());
+		copied = true;
+		setTimeout(() => (copied = false), 2000);
+	}
 </script>
 
 {#if message.role === 'user'}
@@ -63,90 +101,51 @@
 	</div>
 {:else}
 	<div class="answer">
-		{#each message.parts as part, index (index)}
-			{#if part.type === 'text'}
-				<Markdown text={part.text} {refs} />
-			{:else if part.type === 'reasoning' && part.text.trim()}
-				<p class="note">{part.text}</p>
-			{:else if part.type === 'tool-consultar_dados'}
-				<details class="query">
-					<summary>
-						{#if part.state === 'output-available'}
-							{part.input.finalidade}
-							<span class="meta"
-								>{formatInteger(part.output.rows.length)}
-								{part.output.rows.length === 1 ? 'linha' : 'linhas'}</span
-							>
-						{:else if part.state === 'output-error'}
-							Consulta recusada <span class="meta">o assistente vai ajustar</span>
-						{:else}
-							<span class="pending"
-								>Consultando{part.input?.finalidade ? `: ${part.input.finalidade}` : ''}</span
-							>
-						{/if}
-					</summary>
-					{#if part.input?.sql}<pre><code>{part.input.sql}</code></pre>{/if}
-					{#if part.state === 'output-error'}<p class="meta">{part.errorText}</p>{/if}
-					{#if part.state === 'output-available' && part.output.rows.length > 0}
-						<DataTable
-							caption={part.input.finalidade}
-							columns={columnsOf(part.output.columns, part.output.rows)}
-							rows={part.output.rows}
-						/>
-					{/if}
-				</details>
-			{:else if part.type === 'tool-mostrar_grafico'}
-				{#if part.state === 'output-available'}
-					{@const { spec, rows, columns } = part.output}
-					{@const format = specFormat(spec)}
-					<div class="chart">
-						<Panel
-							title={spec.titulo}
-							subtitle={spec.subtitulo}
-							{source}
-							columns={columnsOf(columns, rows).map((column) => {
-								const serie = spec.series.find((each) => each.coluna === column.key);
-								return serie
-									? {
-											...column,
-											label: serie.rotulo,
-											format: (cell: Row[string]) => (typeof cell === 'number' ? format(cell) : '—')
-										}
-									: column;
-							})}
-							{rows}
-							slug="consulta-{message.id}-{index}"
-						>
-							{#snippet chart()}
-								<Chart
-									label={spec.titulo}
-									height={spec.tipo === 'barras'
-										? `${Math.max(12, rows.length * 1.9 + 2)}rem`
-										: '18rem'}
-									option={(tokens) => answerChart(tokens, spec, rows)}
-								/>
-							{/snippet}
-						</Panel>
-						<details class="query">
-							<summary>SQL do gráfico</summary>
-							<pre><code>{part.input.sql}</code></pre>
-						</details>
-					</div>
-				{:else if part.state === 'output-error'}
-					<p class="meta">Não foi possível montar o gráfico: {part.errorText}</p>
-				{:else}
-					<p class="pending">Montando gráfico</p>
-				{/if}
-			{:else if part.type === 'tool-buscar_documentos'}
-				<p class="meta">
-					{#if part.state === 'output-available'}
-						Documentos consultados: {part.input.consulta}
-					{:else if part.state === 'output-error'}
-						A busca em documentos falhou.
-					{:else}
-						<span class="pending">Buscando nos documentos</span>
-					{/if}
-				</p>
+		{#each segments as segment, index (index)}
+			{#if segment.kind === 'steps'}
+				<Steps parts={segment.parts} active={streaming && index === segments.length - 1} />
+			{:else if segment.kind === 'text'}
+				<Markdown text={segment.text} {refs} />
+			{:else if segment.part.state === 'output-available'}
+				{@const { spec, rows, columns } = segment.part.output}
+				{@const format = specFormat(spec)}
+				<div class="chart">
+					<Panel
+						title={spec.titulo}
+						subtitle={spec.subtitulo}
+						{source}
+						columns={columnsOf(columns, rows).map((column) => {
+							const serie = spec.series.find((each) => each.coluna === column.key);
+							return serie
+								? {
+										...column,
+										label: serie.rotulo,
+										format: (cell: Row[string]) => (typeof cell === 'number' ? format(cell) : '—')
+									}
+								: column;
+						})}
+						{rows}
+						slug="consulta-{message.id}-{index}"
+					>
+						{#snippet chart()}
+							<Chart
+								label={spec.titulo}
+								height={spec.tipo === 'barras'
+									? `${Math.max(12, rows.length * 1.9 + 2)}rem`
+									: '18rem'}
+								option={(tokens) => answerChart(tokens, spec, rows)}
+							/>
+						{/snippet}
+					</Panel>
+					<details class="sql">
+						<summary>SQL do gráfico</summary>
+						<pre><code>{segment.part.input.sql}</code></pre>
+					</details>
+				</div>
+			{:else if segment.part.state === 'output-error'}
+				<p class="meta">Não foi possível montar o gráfico: {segment.part.errorText}</p>
+			{:else}
+				<p class="meta">Montando o gráfico…</p>
 			{/if}
 		{/each}
 
@@ -166,17 +165,25 @@
 				</ol>
 			</section>
 		{/if}
+
+		{#if !streaming && answerText.trim()}
+			<div class="actions">
+				<button type="button" onclick={copy}>{copied ? 'Copiado' : 'Copiar resposta'}</button>
+			</div>
+		{/if}
 	</div>
 {/if}
 
 <style>
 	.question {
 		align-self: flex-end;
-		max-inline-size: min(36rem, 90%);
+		max-inline-size: min(36rem, 85%);
 		padding: var(--space-3) var(--space-4);
+		border: var(--border);
 		border-radius: var(--radius);
 		background: var(--surface);
 		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 
 	.answer {
@@ -185,63 +192,35 @@
 		gap: var(--space-3);
 	}
 
-	.note,
 	.meta {
 		color: var(--ink-2);
 		font-size: var(--text-sm);
-	}
-
-	.note {
-		max-inline-size: var(--measure);
-		padding-inline-start: var(--space-3);
-		border-inline-start: 2px solid var(--rule);
-	}
-
-	.meta {
-		margin-inline-start: var(--space-2);
-	}
-
-	p.meta {
-		margin-inline-start: 0;
-	}
-
-	.pending::after {
-		content: '…';
-		animation: blink 1.2s steps(2, start) infinite;
-	}
-
-	.query {
-		font-size: var(--text-sm);
-	}
-
-	.sources summary {
-		color: var(--ink-2);
-		cursor: pointer;
-	}
-
-	.query summary {
-		color: var(--ink-2);
-		cursor: pointer;
-	}
-
-	.query[open] summary {
-		margin-block-end: var(--space-2);
-	}
-
-	pre {
-		overflow-x: auto;
-		padding: var(--space-3);
-		margin-block-end: var(--space-3);
-		border-radius: var(--radius);
-		background: var(--surface);
-		font-size: var(--text-xs);
-		white-space: pre-wrap;
 	}
 
 	.chart {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
+	}
+
+	.sql {
+		font-size: var(--text-sm);
+	}
+
+	.sql summary,
+	.sources summary {
+		color: var(--ink-2);
+		cursor: pointer;
+	}
+
+	pre {
+		overflow-x: auto;
+		padding: var(--space-3);
+		margin-block-start: var(--space-2);
+		border-radius: var(--radius);
+		background: var(--surface);
+		font-size: var(--text-xs);
+		white-space: pre-wrap;
 	}
 
 	.sources {
@@ -274,15 +253,16 @@
 		white-space: pre-wrap;
 	}
 
-	@keyframes blink {
-		to {
-			visibility: hidden;
-		}
+	.actions button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--ink-3);
+		font: inherit;
+		font-size: var(--text-xs);
 	}
 
-	@media (prefers-reduced-motion: reduce) {
-		.pending::after {
-			animation: none;
-		}
+	.actions button:hover {
+		color: var(--ink);
 	}
 </style>

@@ -1,36 +1,62 @@
 <script lang="ts">
 	import { Chat } from '@ai-sdk/svelte';
 	import { DefaultChatTransport } from 'ai';
+	import { untrack } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
+	import { goto, invalidate } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import type { ConsultaMessage } from '#lib/consulta.ts';
-	import Button from '#lib/components/Button.svelte';
 	import Message from './Message.svelte';
 
 	interface Props {
-		id: string;
+		/** Null until the first question creates the conversation. */
+		id: string | null;
+		title: string | null;
 		initial: ConsultaMessage[];
 		remaining: number;
 		configured: boolean;
 		publishedUntil: { year: number; month: number };
 	}
 
-	let { id, initial, remaining, configured, publishedUntil }: Props = $props();
+	let { id, title, initial, remaining, configured, publishedUntil }: Props = $props();
 
-	const chat = $derived(
-		new Chat<ConsultaMessage>({
-			id,
-			messages: initial,
-			transport: new DefaultChatTransport({
-				api: `/consulta/${id}/mensagens`,
-				prepareSendMessagesRequest: ({ messages }) => ({ body: { message: messages.at(-1) } })
-			})
-		})
-	);
+	const SUGGESTIONS = [
+		'Qual estado teve a maior taxa de óbitos no último ano consolidado?',
+		'Como evoluiu a taxa de acidentes no Brasil nos anos consolidados?',
+		'Quais atividades econômicas têm mais óbitos por 100 mil vínculos?',
+		'O que a NR-35 exige para trabalho em altura?'
+	];
+	const MAX_FIELD_PX = 240;
+	const STUCK_PX = 160;
 
+	let conversationId = $state(untrack(() => id));
 	let draft = $state('');
-	let sent = $state(0);
-	const busy = $derived(chat.status === 'submitted' || chat.status === 'streaming');
-	const left = $derived(remaining - sent);
+	let starting = $state(false);
+	let stuck = $state(true);
+
+	const chat = new Chat<ConsultaMessage>({
+		messages: untrack(() => initial),
+		transport: new DefaultChatTransport({
+			prepareSendMessagesRequest: ({ messages }) => ({
+				api: `/consulta/${conversationId ?? ''}/mensagens`,
+				body: { message: messages.at(-1) }
+			})
+		}),
+		onFinish: () => {
+			void invalidate('consulta:conversas');
+		}
+	});
+
+	const busy = $derived(starting || chat.status === 'submitted' || chat.status === 'streaming');
+	const empty = $derived(chat.messages.length === 0);
 	const problem = $derived(chat.error ? readable(chat.error.message) : null);
+	const heading = $derived(
+		title ??
+			chat.messages
+				.find((message) => message.role === 'user')
+				?.parts.find((part) => part.type === 'text')?.text ??
+			null
+	);
 
 	/** Endpoint refusals arrive as the JSON body; stream failures as plain text. */
 	function readable(raw: string): string {
@@ -44,26 +70,99 @@
 		return raw;
 	}
 
-	function send(event?: SubmitEvent) {
-		event?.preventDefault();
-		const text = draft.trim();
-		if (!text || busy || left <= 0) return;
+	async function ask(text: string) {
+		const question = text.trim();
+		if (!question || busy || remaining <= 0) return;
 		draft = '';
-		sent += 1;
-		void chat.sendMessage({ text });
+		if (!conversationId) {
+			starting = true;
+			const response = await fetch(resolve('/consulta/conversas'), { method: 'POST' });
+			starting = false;
+			if (!response.ok) {
+				draft = question;
+				return;
+			}
+			const created = (await response.json()) as { id: string };
+			conversationId = created.id;
+			await goto(resolve('/consulta/[id]', { id: created.id }), {
+				state: {},
+				shallow: true,
+				replace: true
+			});
+		}
+		stuck = true;
+		await chat.sendMessage({ text: question });
+	}
+
+	function onsubmit(event: SubmitEvent) {
+		event.preventDefault();
+		void ask(draft);
 	}
 
 	function onkeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) send();
+		if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+			event.preventDefault();
+			void ask(draft);
+		}
 	}
+
+	function toEnd(behavior: ScrollBehavior) {
+		window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+	}
+
+	/** Grows the field with its content up to a cap, and shrinks it back once sent. */
+	const fit: Attachment<HTMLTextAreaElement> = (field) => {
+		$effect(() => {
+			field.style.blockSize = draft ? 'auto' : '';
+			field.style.blockSize = `${Math.min(field.scrollHeight, MAX_FIELD_PX)}px`;
+		});
+	};
+
+	/**
+	 * Keeps the newest text in view while an answer streams, unless the reader
+	 * scrolled up to read something earlier.
+	 */
+	const follow: Attachment<HTMLElement> = (list) => {
+		const onScroll = () => {
+			stuck =
+				window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - STUCK_PX;
+		};
+		const grow = new ResizeObserver(() => {
+			if (stuck) toEnd('instant');
+		});
+		grow.observe(list);
+		window.addEventListener('scroll', onScroll, { passive: true });
+		return () => {
+			grow.disconnect();
+			window.removeEventListener('scroll', onScroll);
+		};
+	};
 </script>
 
-<div class="conversation">
-	<ol class="messages" aria-live="polite" aria-busy={busy}>
-		{#each chat.messages as message (message.id)}
-			<li class={message.role}><Message {message} {publishedUntil} /></li>
+<div class="conversation" class:empty>
+	{#if empty}
+		<header class="greeting">
+			<h1>O que você quer saber sobre acidentes de trabalho?</h1>
+			<p>
+				As respostas vêm dos dados do observatório e das normas regulamentadoras, com o SQL e as
+				fontes de cada número.
+			</p>
+		</header>
+	{:else}
+		<h1 class="visually-hidden">{heading}</h1>
+	{/if}
+
+	<ol class="messages" aria-live="polite" aria-busy={busy} {@attach follow}>
+		{#each chat.messages as message, index (message.id)}
+			<li class={message.role}>
+				<Message
+					{message}
+					{publishedUntil}
+					streaming={chat.status === 'streaming' && index === chat.messages.length - 1}
+				/>
+			</li>
 		{/each}
-		{#if chat.status === 'submitted'}
+		{#if chat.status === 'submitted' || starting}
 			<li class="assistant waiting">Lendo a pergunta…</li>
 		{/if}
 	</ol>
@@ -71,31 +170,80 @@
 	{#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
 	{#if configured}
-		<form class="composer" onsubmit={send}>
-			<label for="pergunta" class="visually-hidden">Pergunta</label>
-			<textarea
-				id="pergunta"
-				bind:value={draft}
-				{onkeydown}
-				rows="3"
-				maxlength="4000"
-				placeholder="Ex.: Qual estado teve a maior taxa de óbitos em 2023?"
-				disabled={left <= 0}></textarea>
-			<div class="actions">
-				<span class="quota">
-					{left > 0
-						? `${left} ${left === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`
+		<form class="composer" {onsubmit}>
+			{#if !stuck && !empty}
+				<button
+					type="button"
+					class="jump"
+					onclick={() => {
+						toEnd('smooth');
+					}}
+				>
+					<span class="visually-hidden">Ir para o fim da conversa</span>
+					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" /></svg
+					>
+				</button>
+			{/if}
+			<div class="field">
+				<label for="pergunta" class="visually-hidden">Pergunta</label>
+				<textarea
+					id="pergunta"
+					bind:value={draft}
+					{onkeydown}
+					{@attach fit}
+					rows="1"
+					maxlength="4000"
+					placeholder={remaining > 0
+						? 'Pergunte sobre acidentes de trabalho ou normas regulamentadoras'
 						: 'Limite diário atingido'}
-				</span>
+					disabled={remaining <= 0}></textarea>
 				{#if busy}
-					<Button onclick={() => chat.stop()}>Interromper</Button>
+					<button
+						type="button"
+						class="action"
+						onclick={() => {
+							void chat.stop();
+						}}
+					>
+						<span class="visually-hidden">Interromper a resposta</span>
+						<svg viewBox="0 0 16 16" aria-hidden="true"
+							><rect x="4" y="4" width="8" height="8" /></svg
+						>
+					</button>
 				{:else}
-					<Button type="submit" variant="primary" disabled={!draft.trim() || left <= 0}>
-						Perguntar
-					</Button>
+					<button type="submit" class="action" disabled={!draft.trim() || remaining <= 0}>
+						<span class="visually-hidden">Enviar pergunta</span>
+						<svg viewBox="0 0 16 16" aria-hidden="true"
+							><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" /></svg
+						>
+					</button>
 				{/if}
 			</div>
+			<div class="hints">
+				<span>Enter envia · Shift+Enter quebra a linha</span>
+				<span>
+					{remaining > 0
+						? `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`
+						: 'O limite volta à meia-noite'}
+				</span>
+			</div>
 		</form>
+
+		{#if empty}
+			<ul class="suggestions" aria-label="Sugestões de pergunta">
+				{#each SUGGESTIONS as suggestion (suggestion)}
+					<li>
+						<button
+							type="button"
+							disabled={remaining <= 0}
+							onclick={() => {
+								void ask(suggestion);
+							}}>{suggestion}</button
+						>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	{:else}
 		<p class="problem">O assistente ainda não está configurado neste servidor.</p>
 	{/if}
@@ -105,8 +253,34 @@
 	.conversation {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: var(--space-6);
+		max-inline-size: 48rem;
+		min-block-size: 60vh;
+		margin-inline: auto;
 	}
+
+	.conversation.empty {
+		justify-content: center;
+	}
+
+	.greeting {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		text-align: center;
+	}
+
+	.greeting h1 {
+		font-size: var(--text-2xl);
+		line-height: var(--leading-tight);
+	}
+
+	.greeting p {
+		max-inline-size: 40rem;
+		margin-inline: auto;
+		color: var(--ink-2);
+	}
+
 
 	.messages {
 		display: flex;
@@ -114,6 +288,10 @@
 		gap: var(--space-6);
 		padding: 0;
 		list-style: none;
+	}
+
+	.messages:empty {
+		display: none;
 	}
 
 	.messages > li {
@@ -131,41 +309,131 @@
 	}
 
 	.composer {
-		position: sticky;
-		inset-block-end: 0;
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		padding-block: var(--space-3);
-		border-block-start: var(--border);
+		padding-block-end: var(--space-4);
 		background: var(--paper);
 	}
 
-	textarea {
-		inline-size: 100%;
-		padding: var(--space-3);
+	.conversation:not(.empty) .composer {
+		position: sticky;
+		inset-block-end: 0;
+		padding-block-start: var(--space-3);
+	}
+
+	.jump {
+		position: absolute;
+		inset-block-end: calc(100% + var(--space-2));
+		inset-inline-start: 50%;
+		display: grid;
+		place-items: center;
+		inline-size: 2rem;
+		block-size: 2rem;
+		border: var(--border);
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--ink);
+		translate: -50% 0;
+	}
+
+	.jump svg,
+	.action svg {
+		inline-size: 1rem;
+		block-size: 1rem;
+		fill: none;
+		stroke: currentcolor;
+		stroke-width: 1.75;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.field {
+		display: flex;
+		gap: var(--space-2);
+		align-items: flex-end;
+		padding: var(--space-2);
 		border: 1px solid var(--rule-strong);
 		border-radius: var(--radius);
 		background: var(--surface);
-		color: var(--ink);
-		font: inherit;
-		resize: vertical;
 	}
 
-	textarea:focus-visible {
+	.field:focus-within {
+		border-color: var(--ink);
 		outline: 2px solid var(--focus);
 		outline-offset: 1px;
 	}
 
-	.actions {
-		display: flex;
-		gap: var(--space-4);
-		align-items: center;
-		justify-content: space-between;
+	textarea {
+		flex: 1;
+		min-inline-size: 0;
+		padding: var(--space-2);
+		border: 0;
+		background: none;
+		color: var(--ink);
+		font: inherit;
+		line-height: var(--leading);
+		resize: none;
 	}
 
-	.quota {
+	textarea:focus-visible {
+		outline: none;
+	}
+
+	.action {
+		display: grid;
+		flex: none;
+		place-items: center;
+		inline-size: 2.25rem;
+		block-size: 2.25rem;
+		border: 0;
+		border-radius: var(--radius);
+		background: var(--ink);
+		color: var(--paper);
+	}
+
+	.action:disabled {
+		background: var(--rule-strong);
+	}
+
+	.action rect {
+		fill: currentcolor;
+		stroke: none;
+	}
+
+	.hints {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1) var(--space-4);
+		justify-content: space-between;
 		color: var(--ink-2);
+		font-size: var(--text-xs);
+	}
+
+	.suggestions {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+		gap: var(--space-2);
+		padding: 0;
+		list-style: none;
+	}
+
+	.suggestions button {
+		inline-size: 100%;
+		block-size: 100%;
+		padding: var(--space-3) var(--space-4);
+		border: var(--border);
+		border-radius: var(--radius);
+		background: none;
+		color: var(--ink-2);
+		font: inherit;
 		font-size: var(--text-sm);
+		text-align: start;
+	}
+
+	.suggestions button:hover:not(:disabled) {
+		border-color: var(--ink);
+		color: var(--ink);
 	}
 </style>
