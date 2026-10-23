@@ -87,15 +87,14 @@
 		Turnstile, que confirma que quem começa a consulta é uma pessoa.
 	</li>
 	<li>
-		Anthropic (Estados Unidos): processa as perguntas da consulta para gerar as respostas. Pela
-		política comercial da Anthropic, os dados enviados pela API não são usados para treinar modelos
-		e são apagados em até 30 dias. Veja <a href={resolve('/(institucional)/ia')}
-			>Inteligência artificial</a
+		Fornecedor do modelo de inteligência artificial (no exterior): processa as perguntas da consulta
+		para gerar as respostas. O contrato não permite usar esses dados para treinar modelos. Veja <a
+			href={resolve('/(institucional)/ia')}>Inteligência artificial</a
 		>.
 	</li>
 </ul>
 <p>
-	A transferência para os Estados Unidos ocorre porque é necessária para prestar a consulta que você
+	A transferência para outros países ocorre porque é necessária para prestar a consulta que você
 	pediu (art. 33, IX). Nenhum dado é vendido ou usado para publicidade.
 </p>
 

@@ -91,7 +91,7 @@
 			class="ask"
 			href={resolve('/consulta')}
 			aria-current={page.route.id?.startsWith('/consulta') ? 'page' : undefined}
-			><Icon name="message-circle" />Consulta</a
+			><Icon name="message-square-text" />Consulta</a
 		>
 	</div>
 </header>
@@ -117,8 +117,8 @@
 				</ul>
 			</nav>
 			<p class="note">
-				A consulta usa inteligência artificial (Claude, da Anthropic) e pode errar: confira os dados
-				e as fontes de cada resposta.
+				A consulta usa inteligência artificial e pode errar: confira os dados e as fontes de cada
+				resposta.
 			</p>
 		</div>
 	</footer>
@@ -225,6 +225,13 @@
 	.ask:hover,
 	.ask[aria-current] {
 		border-color: var(--ink);
+	}
+
+	@media (width < 60rem) {
+		nav {
+			flex-basis: 100%;
+			order: 1;
+		}
 	}
 
 	main {

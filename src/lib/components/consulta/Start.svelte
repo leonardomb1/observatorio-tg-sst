@@ -128,7 +128,8 @@
 		<li>
 			<Icon name="file" />
 			<span
-				>As perguntas são processadas pela Anthropic, nos Estados Unidos. Detalhes em
+				>As perguntas são processadas por um fornecedor de inteligência artificial no exterior.
+				Detalhes em
 				<a href={resolve('/(institucional)/privacidade')}>Privacidade</a>.</span
 			>
 		</li>

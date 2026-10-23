@@ -41,6 +41,12 @@
 
 	const eventFromLink = $derived(page.url.searchParams.get('evento'));
 	const open = $derived(started && !paused && remaining > 0);
+	const quota = $derived.by(() => {
+		const questions = `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'}`;
+		if (event) return { full: `${event.label}: ${questions}`, short: questions };
+		if (remaining > 0) return { full: `${questions} hoje`, short: questions };
+		return { full: 'O limite volta à meia-noite', short: 'Limite de hoje atingido' };
+	});
 	let joinProblem = $state<string | null>(null);
 
 	async function joinEvent(code: string) {
@@ -261,7 +267,7 @@
 					rows="1"
 					maxlength="4000"
 					placeholder={open
-						? 'Pergunte sobre acidentes de trabalho ou normas regulamentadoras'
+						? 'Pergunte sobre acidentes ou normas'
 						: paused
 							? 'A consulta atingiu o limite de hoje. Ela volta à meia-noite.'
 							: 'Você usou as perguntas disponíveis.'}
@@ -289,18 +295,13 @@
 				{/if}
 			</div>
 			<div class="hints">
-				<span
-					>Respostas geradas por IA (Claude, da Anthropic); confira os dados e as fontes. <a
-						href={resolve('/(institucional)/ia')}>Saiba mais</a
-					></span
-				>
 				<span>
-					{event
-						? `${event.label}: ${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'}`
-						: remaining > 0
-							? `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`
-							: 'O limite volta à meia-noite'}
+					<span class="wide">Respostas geradas por IA; confira os dados e as fontes.</span>
+					<span class="narrow">Gerado por IA.</span>
+					<a href={resolve('/(institucional)/ia')}>Saiba mais</a>
 				</span>
+				<span class="wide">{quota.full}</span>
+				<span class="narrow">{quota.short}</span>
 			</div>
 		</form>
 
@@ -509,6 +510,31 @@
 
 	.hints a {
 		color: inherit;
+	}
+
+	@media (width < 40rem) {
+		.conversation {
+			padding-block-end: 6rem;
+		}
+
+		.composer {
+			padding-block: var(--space-4) var(--space-2);
+		}
+
+		.hints {
+			flex-wrap: nowrap;
+			white-space: nowrap;
+		}
+
+		.wide {
+			display: none;
+		}
+	}
+
+	@media (width >= 40rem) {
+		.narrow {
+			display: none;
+		}
 	}
 
 	.suggestions {

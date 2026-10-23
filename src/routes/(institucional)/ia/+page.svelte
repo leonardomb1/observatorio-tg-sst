@@ -15,7 +15,7 @@
 
 <p>
 	As respostas da <a href={resolve('/consulta')}>Consulta</a> são escritas por um modelo de inteligência
-	artificial, o Claude, da Anthropic. Você conversa com um programa, não com uma pessoa.
+	artificial de um fornecedor externo. Você conversa com um programa, não com uma pessoa.
 </p>
 
 <h2>O que ela faz</h2>
@@ -45,8 +45,8 @@
 
 <h2>Seus dados</h2>
 <p>
-	A pergunta e o histórico da conversa são enviados à Anthropic, nos Estados Unidos, para gerar a
-	resposta, e não são usados para treinar modelos. Não informe dados pessoais, de saúde ou de
+	A pergunta e o histórico da conversa são enviados ao fornecedor do modelo, no exterior, para gerar
+	a resposta, e não são usados para treinar modelos. Não informe dados pessoais, de saúde ou de
 	terceiros. Detalhes em <a href={resolve('/(institucional)/privacidade')}>Privacidade</a>.
 </p>
 
