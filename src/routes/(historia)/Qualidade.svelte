@@ -2,7 +2,7 @@
 	import Panel from '#lib/components/Panel.svelte';
 	import { formatDecimal, formatInteger, formatMonth, formatMonthYear } from '#lib/format.ts';
 	import { catSource } from '#lib/sources.ts';
-	import { yearStatusHint, yearStatusLabel, type YearStatus } from '#lib/status.ts';
+	import { COVERAGE, yearStatusHint, yearStatusLabel, type YearStatus } from '#lib/status.ts';
 	import type { PageData } from './$types';
 
 	type Month = Awaited<PageData['coverage']>[number];
@@ -15,15 +15,19 @@
 
 	let { calendar, coverage }: Props = $props();
 
+	const share = (ratio: number) => `${formatDecimal(ratio * 100, 0)}%`;
+	const gap = share(COVERAGE.gap);
+	const low = share(COVERAGE.low);
+
 	const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 	const legend: { status: MonthStatus; mark: string; label: string; hint: string }[] = [
-		{ status: 'ok', mark: '', label: 'Completo', hint: 'pelo menos 80% do volume esperado' },
+		{ status: 'ok', mark: '', label: 'Completo', hint: `pelo menos ${low} do volume esperado` },
 		{
 			status: 'baixo',
 			mark: '−',
 			label: 'Baixo',
-			hint: 'entre metade e 80% do esperado; o ano continua comparável'
+			hint: `entre ${gap} e ${low} do esperado; o ano continua comparável`
 		},
 		{
 			status: 'atipico',
@@ -35,7 +39,7 @@
 			status: 'lacuna',
 			mark: '×',
 			label: 'Lacuna',
-			hint: 'arquivo publicado com menos da metade do esperado'
+			hint: `arquivo publicado com menos de ${gap} do esperado`
 		},
 		{ status: 'ausente', mark: '○', label: 'Ausente', hint: 'nenhuma CAT na fonte para o mês' },
 		{
@@ -95,12 +99,12 @@
 			);
 		if (gaps.length > 0)
 			out.push(
-				`${gaps.length === 1 ? 'Um mês publicado' : `${formatInteger(gaps.length)} meses publicados`} com menos da metade do esperado (${listOf(gaps)}).`
+				`${gaps.length === 1 ? 'Um mês publicado' : `${formatInteger(gaps.length)} meses publicados`} com menos de ${gap} do esperado (${listOf(gaps)}).`
 			);
 		if (pending.length > 0)
 			out.push(`Arquivos ainda não publicados: ${listOf(pending)}. O total vai subir.`);
 		if (low.length > 0 && year.status !== 'consolidado')
-			out.push(`Também abaixo do esperado, mas acima da metade: ${listOf(low)}.`);
+			out.push(`Também abaixo do esperado, mas acima de ${gap}: ${listOf(low)}.`);
 		if (year.aeatCoveragePct !== null)
 			out.push(
 				`O microdado reúne ${formatDecimal(year.aeatCoveragePct)}% das CATs contadas no anuário oficial (AEAT) para o ano.`
@@ -151,8 +155,8 @@
 			próprio ano. A razão mede se o ano está completo, não se houve mais ou menos acidentes.
 		</p>
 		<p>
-			Um ano é consolidado quando nenhum mês está ausente ou abaixo da metade do esperado e o
-			arquivo de dezembro já foi publicado.
+			Um ano é consolidado quando nenhum mês está ausente ou abaixo de {gap} do esperado e o arquivo de
+			dezembro já foi publicado.
 		</p>
 	{/snippet}
 	{#snippet chart()}

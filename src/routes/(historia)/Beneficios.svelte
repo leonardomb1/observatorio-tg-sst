@@ -4,6 +4,7 @@
 	import Panel from '#lib/components/Panel.svelte';
 	import type { Column } from '#lib/csv.ts';
 	import { formatCompact, formatDecimal, formatInteger, formatPercent } from '#lib/format.ts';
+	import { changeSince, leader } from '#lib/findings.ts';
 	import { benefitsSource } from '#lib/sources.ts';
 	import type { PageData } from './$types';
 
@@ -76,12 +77,19 @@
 			.toSorted((a, b) => (b.medianRmi ?? 0) - (a.medianRmi ?? 0))
 	);
 	const partial = $derived(years.filter((row) => row.months < 12));
+	const kindLead = $derived(
+		leader(
+			lastKinds,
+			(row) => row.grants,
+			(value) => formatInteger(value)
+		)
+	);
 </script>
 
 <div class="l-grid panels">
 	<Panel
 		title={last && previous && change !== null
-			? `Em ${last.year}, o INSS concedeu ${formatInteger(last.total)} benefícios acidentários, ${formatPercent(Math.abs(change))} ${change >= 0 ? 'a mais' : 'a menos'} que em ${previous.year}`
+			? `Em ${last.year}, o INSS concedeu ${formatInteger(last.total)} benefícios acidentários, ${changeSince(change, previous.year)}`
 			: 'Benefícios acidentários concedidos por ano'}
 		subtitle="Concessões de benefícios de origem acidentária pelo INSS, por ano de concessão"
 		{source}
@@ -127,8 +135,8 @@
 
 	{#if last}
 		<Panel
-			title={lastKinds[0]
-				? `${lastKinds[0].kind} responde por ${formatPercent(lastKinds[0].grants / last.total)} das concessões de ${last.year}`
+			title={kindLead && !kindLead.tied.length
+				? `${kindLead.row.kind} responde por ${formatPercent(kindLead.row.grants / last.total)} das concessões de ${last.year}`
 				: `Concessões por espécie, ${last.year}`}
 			subtitle="Concessões de benefícios acidentários por espécie, {last.year}"
 			{source}

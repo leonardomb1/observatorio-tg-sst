@@ -4,6 +4,7 @@
 	import Panel from '#lib/components/Panel.svelte';
 	import type { Column } from '#lib/csv.ts';
 	import { formatInteger, formatPercent } from '#lib/format.ts';
+	import { leader, listNames, type Leader } from '#lib/findings.ts';
 	import { catSource } from '#lib/sources.ts';
 	import type { PageData } from './$types';
 
@@ -45,12 +46,35 @@
 			null
 		)
 	);
-	const deadliest = $derived(
-		agents.reduce<(typeof agents)[number] | null>(
-			(best, row) => (best && (best.lethality ?? 0) >= (row.lethality ?? 0) ? best : row),
-			null
+	const byDeaths = (rows: readonly FamilyRow[]) =>
+		leader(
+			rows,
+			(row) => row.deaths,
+			(value) => formatInteger(value)
+		);
+	const agentLead = $derived(byDeaths(agents));
+	const bodyLead = $derived(byDeaths(bodyParts));
+	const injuryLead = $derived(byDeaths(injuries));
+	const lethalLead = $derived(
+		leader(
+			agents,
+			(row) => row.lethality,
+			(value) => formatInteger(value)
 		)
 	);
+	const deadliest = $derived(lethalLead && !lethalLead.tied.length ? lethalLead.row : null);
+
+	/** Names the leader, or every family that shows the same count. */
+	function familyTitle(
+		lead: Leader<FamilyRow> | null,
+		single: string,
+		tied: string,
+		empty: string
+	) {
+		if (!lead) return empty;
+		if (lead.tied.length === 0) return `${lead.row.family}${single}`;
+		return `${listNames([lead.row, ...lead.tied].map((row) => row.family))}${tied}`;
+	}
 	const agentDeaths = $derived(causes.agents.reduce((sum, row) => sum + row.deaths, 0));
 	const topShare = $derived(
 		agentDeaths > 0 ? agents.reduce((sum, row) => sum + row.deaths, 0) / agentDeaths : null
@@ -81,9 +105,12 @@
 
 <div class="l-grid panels">
 	<Panel
-		title={agents[0]
-			? `${agents[0].family} é o agente com mais óbitos em ${year}`
-			: `Óbitos por agente causador, ${year}`}
+		title={familyTitle(
+			agentLead,
+			` é o agente com mais óbitos em ${year}`,
+			` empatam como agentes com mais óbitos em ${year}`,
+			`Óbitos por agente causador, ${year}`
+		)}
 		subtitle="Óbitos registrados na CAT por família de agente causador, {year}, {TOP} famílias com mais óbitos"
 		status="consolidado"
 		{period}
@@ -154,9 +181,12 @@
 	</Panel>
 
 	<Panel
-		title={bodyParts[0]
-			? `${bodyParts[0].family}: a parte do corpo mais presente nos óbitos`
-			: `Óbitos por parte do corpo atingida, ${year}`}
+		title={familyTitle(
+			bodyLead,
+			': a parte do corpo mais presente nos óbitos',
+			' empatam entre as partes do corpo mais presentes nos óbitos',
+			`Óbitos por parte do corpo atingida, ${year}`
+		)}
 		subtitle="Óbitos registrados na CAT por parte do corpo atingida, {year}, {TOP} com mais óbitos"
 		status="consolidado"
 		{period}
@@ -166,7 +196,7 @@
 		slug="obitos-por-parte-do-corpo-{year}"
 	>
 		{#snippet note()}
-			{#if mostInjured && mostInjured.family !== bodyParts[0]?.family}
+			{#if mostInjured && mostInjured.family !== bodyLead?.row.family}
 				<p>
 					Contando todos os acidentes, a parte mais atingida é outra: {mostInjured.family}, com {formatInteger(
 						mostInjured.accidents
@@ -191,9 +221,12 @@
 	</Panel>
 
 	<Panel
-		title={injuries[0]
-			? `${injuries[0].family}: a lesão mais presente nos óbitos`
-			: `Óbitos por natureza da lesão, ${year}`}
+		title={familyTitle(
+			injuryLead,
+			': a lesão mais presente nos óbitos',
+			' empatam entre as lesões mais presentes nos óbitos',
+			`Óbitos por natureza da lesão, ${year}`
+		)}
 		subtitle="Óbitos registrados na CAT por natureza da lesão, {year}, {TOP} com mais óbitos"
 		status="consolidado"
 		{period}

@@ -4,30 +4,53 @@
 	import KpiCard from '#lib/components/KpiCard.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { formatDecimal, formatInteger, formatMonthYear } from '#lib/format.ts';
+	import { leader, listNames, timesAbove } from '#lib/findings.ts';
 	import { catSource } from '#lib/sources.ts';
 	import { yearStatusLabel, type YearStatus } from '#lib/status.ts';
 	import { reveal } from '#lib/viewport.ts';
 	import type { PageData } from './$types';
 
 	type Props = PageData['overview'] & Pick<PageData, 'calendar'>;
-	type YearRate = PageData['overview']['series'][number];
 
 	let { calendar, year, series, brazil, lethality }: Props = $props();
 
 	const source = $derived(catSource(calendar.publishedUntil));
-	const commute = $derived(lethality.find((row) => row.type === 'Trajeto'));
-	const typical = $derived(lethality.find((row) => row.type === 'Típico'));
+	/** How each accident type reads inside a sentence, as subject and as the term of comparison. */
+	const TYPE_TEXT: Record<string, { subject: string; object: string }> = {
+		Trajeto: { subject: 'No trajeto', object: 'o de trajeto' },
+		Típico: { subject: 'No acidente típico', object: 'o típico' },
+		Doença: { subject: 'Na doença do trabalho', object: 'a doença do trabalho' }
+	};
+
 	const peak = $derived(
-		series
-			.filter((row) => row.status === 'consolidado' && row.accidentRate !== null)
-			.reduce<YearRate | null>(
-				(best, row) => (best && (best.accidentRate ?? 0) >= (row.accidentRate ?? 0) ? best : row),
-				null
-			)
+		leader(
+			series.filter((row) => row.status === 'consolidado'),
+			(row) => row.accidentRate,
+			(value) => formatDecimal(value)
+		)
 	);
-	const ratio = $derived(
-		commute && typical ? commute.deathsPer100kAccidents / typical.deathsPer100kAccidents : null
+	const deadliest = $derived(
+		leader(
+			lethality,
+			(row) => row.deathsPer100kAccidents,
+			(value) => formatInteger(value)
+		)
 	);
+	const safest = $derived(
+		lethality.reduce<(typeof lethality)[number] | null>(
+			(low, row) => (low && low.deathsPer100kAccidents <= row.deathsPer100kAccidents ? low : row),
+			null
+		)
+	);
+	const lethalityTitle = $derived.by(() => {
+		if (!deadliest || deadliest.tied.length || !safest) return null;
+		const subject = TYPE_TEXT[deadliest.row.type]?.subject;
+		const object = TYPE_TEXT[safest.type]?.object;
+		const times = timesAbove(deadliest.row.deathsPer100kAccidents / safest.deathsPer100kAccidents);
+		return subject && object && times
+			? `${subject}, cada acidente é ${times} mais letal que ${object}`
+			: null;
+	});
 </script>
 
 <section data-section="" class="l-stack overview" aria-labelledby="visao-geral-title">
@@ -74,9 +97,11 @@
 
 	<div class="l-grid panels" {@attach reveal}>
 		<Panel
-			title={peak
-				? `Entre os anos consolidados, a maior taxa foi a de ${peak.year}`
-				: 'Taxa de acidentes por ano'}
+			title={!peak
+				? 'Taxa de acidentes por ano'
+				: peak.tied.length
+					? `Entre os anos consolidados, ${listNames([peak.row, ...peak.tied].map((row) => String(row.year)))} empatam com a maior taxa`
+					: `Entre os anos consolidados, a maior taxa foi a de ${peak.row.year}`}
 			subtitle="Acidentes com CAT por 100 mil vínculos formais, sem administração pública"
 			status="consolidado"
 			period="anos fechados"
@@ -131,9 +156,7 @@
 		</Panel>
 
 		<Panel
-			title={ratio
-				? `No trajeto, cada acidente é ${formatDecimal(ratio)} vezes mais letal`
-				: 'Letalidade por tipo de acidente'}
+			title={lethalityTitle ?? 'Letalidade por tipo de acidente'}
 			subtitle="Óbitos por 100 mil acidentes, somando os anos consolidados"
 			{source}
 			columns={[
@@ -169,7 +192,9 @@
 			{/snippet}
 			{#snippet chart()}
 				<Chart
-					label="Óbitos por 100 mil acidentes: trajeto, doença e típico."
+					label="Óbitos por 100 mil acidentes, por tipo: {lethality
+						.map((row) => row.type.toLocaleLowerCase('pt-BR'))
+						.join(', ')}."
 					height="10rem"
 					option={(tokens) =>
 						rankingBars(
@@ -177,7 +202,7 @@
 							lethality.map((row) => ({
 								label: row.type,
 								value: row.deathsPer100kAccidents,
-								highlight: row.type === 'Trajeto'
+								highlight: row.type === deadliest?.row.type
 							})),
 							(value) => formatInteger(value)
 						)}

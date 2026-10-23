@@ -5,7 +5,9 @@
 	import Panel from '#lib/components/Panel.svelte';
 	import StorySection from '#lib/components/StorySection.svelte';
 	import { formatDecimal, formatInteger } from '#lib/format.ts';
+	import { leader, listNames, timesAbove } from '#lib/findings.ts';
 	import { catSource } from '#lib/sources.ts';
+	import { inYear } from '#lib/status.ts';
 	import Filters from './Filters.svelte';
 	import type { PageData } from './$types';
 
@@ -29,8 +31,10 @@
 	const above = $derived(
 		national === null ? null : sorted.filter((row) => (value(row) ?? 0) > national).length
 	);
-	const top = $derived(sorted[0]);
-	const multiple = $derived(top && national ? (value(top) ?? 0) / national : null);
+	const lead = $derived(leader(sorted, value, format));
+	const times = $derived(
+		lead && !lead.tied.length && national ? timesAbove((value(lead.row) ?? 0) / national) : null
+	);
 	const byName = $derived(ufs.toSorted((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
 </script>
 
@@ -40,10 +44,11 @@
 			O estado com mais acidentes não é necessariamente o de maior risco: a taxa divide os acidentes
 			pelo emprego formal. Os acidentes são atribuídos ao município do empregador, como no anuário
 			oficial.
-			{#if top && multiple && above !== null}
-				Em {filters.year}, {top.name} teve {formatDecimal(multiple)} vezes a taxa de {measure} do Brasil,
-				e {formatInteger(above)} de {formatInteger(sorted.length)} unidades federativas ficaram acima
-				da média nacional.
+			{#if lead && above !== null}
+				{inYear(filters.year, filters.status)},
+				{#if times}{lead.row.name} teve {times} a taxa de {measure} do Brasil, e{/if}
+				{formatInteger(above)} de {formatInteger(sorted.length)} unidades federativas ficaram acima da
+				média nacional.
 			{/if}
 		</p>
 	{/snippet}
@@ -51,9 +56,11 @@
 	<Filters section="estados" year={filters.year} metric={filters.metric} years={filters.years} />
 
 	<Panel
-		title={top
-			? `${top.name} tem a maior taxa de ${measure} em ${filters.year}`
-			: `Taxa de ${measure} por estado`}
+		title={!lead
+			? `Taxa de ${measure} por estado`
+			: lead.tied.length
+				? `${listNames([lead.row, ...lead.tied].map((row) => row.name))} empatam na maior taxa de ${measure} em ${filters.year}`
+				: `${lead.row.name} tem a maior taxa de ${measure} em ${filters.year}`}
 		subtitle="{deaths
 			? 'Óbitos'
 			: 'Acidentes com CAT'} por 100 mil vínculos formais, sem administração pública, {filters.year}"

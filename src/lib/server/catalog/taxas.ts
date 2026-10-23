@@ -120,7 +120,8 @@ const CnaeRow = z.object({
 	acidentes: z.number(),
 	obitos: z.number(),
 	acidentes_por_100mil_vinculos: z.number().nullable(),
-	obitos_por_100mil_vinculos: z.number().nullable()
+	obitos_por_100mil_vinculos: z.number().nullable(),
+	base_minima: z.number().int()
 });
 
 export interface SectorRate {
@@ -131,6 +132,8 @@ export interface SectorRate {
 	deaths: number;
 	accidentRate: number | null;
 	deathRate: number | null;
+	/** Jobs a class needs to enter the ranking, as set in the datamart. */
+	minimumJobs: number;
 }
 
 /** Only classes above the minimum base, where one death does not swing the rate. */
@@ -140,7 +143,7 @@ export const sectorRanking = (query: Query) =>
 			query,
 			CnaeRow,
 			`SELECT ano, ano_status, cnae_codigo, cnae_descricao, vinculos_ativos, acidentes, obitos,
-				acidentes_por_100mil_vinculos, obitos_por_100mil_vinculos
+				acidentes_por_100mil_vinculos, obitos_por_100mil_vinculos, base_minima
 			FROM taxa_incidencia_cnae WHERE ano = ? AND base_suficiente`,
 			[year]
 		);
@@ -151,6 +154,7 @@ export const sectorRanking = (query: Query) =>
 			accidents: row.acidentes,
 			deaths: row.obitos,
 			accidentRate: row.acidentes_por_100mil_vinculos,
-			deathRate: row.obitos_por_100mil_vinculos
+			deathRate: row.obitos_por_100mil_vinculos,
+			minimumJobs: row.base_minima
 		}));
 	});
