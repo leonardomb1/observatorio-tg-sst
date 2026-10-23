@@ -5,6 +5,8 @@
 	import type { Column } from '#lib/csv.ts';
 	import Panel from '#lib/components/Panel.svelte';
 	import { catSource } from '#lib/sources.ts';
+	import Button from '#lib/components/Button.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import Markdown from './Markdown.svelte';
 	import Steps from './Steps.svelte';
 
@@ -20,9 +22,14 @@
 		publishedUntil: { year: number; month: number };
 		/** True while this message is still being streamed. */
 		streaming: boolean;
+		/** Present when this question may be rewritten; asks it again with the new text. */
+		onrewrite?: ((text: string) => void) | undefined;
 	}
 
-	let { message, publishedUntil, streaming }: Props = $props();
+	let { message, publishedUntil, streaming, onrewrite }: Props = $props();
+
+	let editing = $state(false);
+	let draft = $state('');
 
 	let copied = $state(false);
 
@@ -94,11 +101,42 @@
 </script>
 
 {#if message.role === 'user'}
-	<div class="question">
-		{#each message.parts as part, index (index)}
-			{#if part.type === 'text'}<p>{part.text}</p>{/if}
-		{/each}
-	</div>
+	{#if editing && onrewrite}
+		<form
+			class="edit"
+			onsubmit={(event) => {
+				event.preventDefault();
+				if (!draft.trim()) return;
+				editing = false;
+				onrewrite(draft.trim());
+			}}
+		>
+			<label class="visually-hidden" for="editar-{message.id}">Nova pergunta</label>
+			<textarea id="editar-{message.id}" bind:value={draft} rows="3" maxlength="4000"></textarea>
+			<p class="hint">As respostas a partir desta pergunta serão substituídas.</p>
+			<div class="edit-actions">
+				<Button onclick={() => (editing = false)}>Cancelar</Button>
+				<Button type="submit" variant="primary" disabled={!draft.trim()}>Perguntar de novo</Button>
+			</div>
+		</form>
+	{:else}
+		<div class="question">
+			{#each message.parts as part, index (index)}
+				{#if part.type === 'text'}<p>{part.text}</p>{/if}
+			{/each}
+		</div>
+		{#if onrewrite}
+			<div class="actions own">
+				<button
+					type="button"
+					onclick={() => {
+						draft = answerText;
+						editing = true;
+					}}><Icon name="pencil" size={0.9} />Editar pergunta</button
+				>
+			</div>
+		{/if}
+	{/if}
 {:else}
 	<div class="answer">
 		{#each segments as segment, index (index)}
@@ -171,6 +209,40 @@
 {/if}
 
 <style>
+	.edit {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		align-self: stretch;
+	}
+
+	.edit textarea {
+		inline-size: 100%;
+		padding: var(--space-3);
+		border: 1px solid var(--ink);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		resize: vertical;
+	}
+
+	.hint {
+		color: var(--ink-2);
+		font-size: var(--text-xs);
+	}
+
+	.edit-actions {
+		display: flex;
+		gap: var(--space-2);
+		justify-content: flex-end;
+	}
+
+	.own {
+		align-self: flex-end;
+		margin-block-start: var(--space-1);
+	}
+
 	.question {
 		align-self: flex-end;
 		max-inline-size: min(36rem, 85%);
@@ -235,6 +307,9 @@
 	}
 
 	.actions button {
+		display: inline-flex;
+		gap: var(--space-1);
+		align-items: center;
 		padding: 0;
 		border: 0;
 		background: none;

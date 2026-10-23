@@ -7,7 +7,8 @@ import {
 	findConversation,
 	loadMessages,
 	openUsage,
-	questionsToday
+	questionsToday,
+	truncateFrom
 } from '#lib/server/assistant/conversations.ts';
 import {
 	assistantDeps,
@@ -27,7 +28,9 @@ const Body = z.object({
 		parts: z
 			.array(z.object({ type: z.literal('text'), text: z.string().trim().min(1).max(4000) }))
 			.length(1)
-	})
+	}),
+	/** Present when a question is rewritten: how many earlier messages to keep. */
+	keep: z.number().int().min(0).optional()
 });
 
 const refuse = (status: number, message: string) => Response.json({ message }, { status });
@@ -54,7 +57,15 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, params, 
 		return refuse(429, 'Muitas perguntas desta rede hoje. O limite volta à meia-noite.');
 	}
 
-	const history = await loadMessages(db, conversation.id);
+	let history = await loadMessages(db, conversation.id);
+	const keep = body.data.keep;
+	if (keep !== undefined) {
+		if (keep >= history.length || history[keep]?.role !== 'user') {
+			return refuse(409, 'A conversa mudou. Recarregue a página para editar a pergunta.');
+		}
+		await truncateFrom(db, conversation.id, keep);
+		history = history.slice(0, keep);
+	}
 	const usageId = await openUsage(db, {
 		subject,
 		conversationId: conversation.id,

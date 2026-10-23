@@ -89,6 +89,43 @@ export async function appendMessages(
 	});
 }
 
+export async function renameConversation(
+	db: Db,
+	id: string,
+	subject: string,
+	title: string
+): Promise<boolean> {
+	const rows = await db
+		.update(conversations)
+		.set({ title })
+		.where(and(eq(conversations.id, id), eq(conversations.subject, subject)))
+		.returning({ id: conversations.id });
+	return rows.length > 0;
+}
+
+export async function deleteConversation(db: Db, id: string, subject: string): Promise<boolean> {
+	const rows = await db
+		.delete(conversations)
+		.where(and(eq(conversations.id, id), eq(conversations.subject, subject)))
+		.returning({ id: conversations.id });
+	return rows.length > 0;
+}
+
+/**
+ * Drops a question and everything after it so it can be asked again. Only the tail goes:
+ * the turns before it stay byte for byte, which Sonnet 5.5 requires of a history.
+ */
+export async function truncateFrom(db: Db, conversationId: string, keep: number): Promise<void> {
+	await db
+		.delete(conversationMessages)
+		.where(
+			and(
+				eq(conversationMessages.conversationId, conversationId),
+				gte(conversationMessages.seq, keep)
+			)
+		);
+}
+
 /** Counted when the question arrives, so a failed or cut stream still uses the quota. */
 export async function openUsage(
 	db: Db,

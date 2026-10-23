@@ -47,7 +47,7 @@
 		<tr>
 			<td>Perguntas e respostas da consulta</td>
 			<td>Exibir o histórico das suas conversas</td>
-			<td>Enquanto o serviço estiver no ar, ou até você pedir a exclusão</td>
+			<td>Até você apagá-las na própria consulta, ou enquanto o serviço estiver no ar</td>
 		</tr>
 		<tr>
 			<td>Contagem de perguntas por rede</td>
@@ -94,9 +94,9 @@
 <h2>Seus direitos</h2>
 <p>
 	Você pode pedir confirmação de tratamento, acesso, correção, exclusão e informações sobre
-	compartilhamento (art. 18). Para a consulta, informe o endereço da conversa que deseja apagar.
-	Pedidos são respondidos em até 15 dias pelo e-mail <a href="mailto:{CONTACT_EMAIL}"
-		>{CONTACT_EMAIL}</a
+	compartilhamento (art. 18). As conversas da consulta podem ser renomeadas ou apagadas por você
+	mesmo, na lista de conversas. Pedidos são respondidos em até 15 dias pelo e-mail <a
+		href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a
 	>. Você também pode peticionar à
 	<a href="https://www.gov.br/anpd">Autoridade Nacional de Proteção de Dados</a>.
 </p>

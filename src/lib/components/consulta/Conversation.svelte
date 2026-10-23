@@ -37,9 +37,9 @@
 	const chat = new Chat<ConsultaMessage>({
 		messages: untrack(() => initial),
 		transport: new DefaultChatTransport({
-			prepareSendMessagesRequest: ({ messages }) => ({
+			prepareSendMessagesRequest: ({ messages, body }) => ({
 				api: `/consulta/${conversationId ?? ''}/mensagens`,
-				body: { message: messages.at(-1) }
+				body: { ...body, message: messages.at(-1) }
 			})
 		}),
 		onFinish: () => {
@@ -92,6 +92,14 @@
 		}
 		stuck = true;
 		await chat.sendMessage({ text: question });
+	}
+
+	/** Replaces a question and everything after it, then asks it again. */
+	async function rewrite(message: ConsultaMessage, text: string) {
+		const keep = chat.messages.findIndex((each) => each.id === message.id);
+		if (keep < 0 || busy || remaining <= 0) return;
+		stuck = true;
+		await chat.sendMessage({ text, messageId: message.id }, { body: { keep } });
 	}
 
 	function onsubmit(event: SubmitEvent) {
@@ -159,6 +167,11 @@
 					{message}
 					{publishedUntil}
 					streaming={chat.status === 'streaming' && index === chat.messages.length - 1}
+					onrewrite={message.role === 'user' && !busy && remaining > 0
+						? (text) => {
+								void rewrite(message, text);
+							}
+						: undefined}
 				/>
 			</li>
 		{/each}
