@@ -26,6 +26,7 @@
 				<a
 					href={choice.href}
 					data-sveltekit-reset="false"
+					data-sveltekit-replacestate
 					aria-current={choice.value === current ? 'true' : undefined}
 					data-status={choice.status}>{choice.label}</a
 				>

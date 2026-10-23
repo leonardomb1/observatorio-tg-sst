@@ -65,7 +65,7 @@
 		--month-atypical: var(--below);
 	}
 
-	@media (width < 48rem) {
+	@media (width < 50rem) {
 		:root {
 			--header-height: 6rem;
 		}

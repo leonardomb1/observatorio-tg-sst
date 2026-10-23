@@ -182,7 +182,7 @@
 
 	.sections a[aria-current] {
 		color: var(--ink);
-		text-decoration-color: var(--accent);
+		text-decoration-color: var(--ink);
 	}
 
 	main {

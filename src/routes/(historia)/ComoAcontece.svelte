@@ -36,6 +36,15 @@
 	const agents = $derived(topByDeaths(causes.agents));
 	const bodyParts = $derived(topByDeaths(causes.bodyParts));
 	const injuries = $derived(topByDeaths(causes.injuries));
+	const smallestBase = $derived(
+		agents.length > 0 ? Math.min(...agents.map((row) => row.accidents)) : null
+	);
+	const mostInjured = $derived(
+		causes.bodyParts.reduce<Family | null>(
+			(best, row) => (best && best.accidents >= row.accidents ? best : row),
+			null
+		)
+	);
 	const deadliest = $derived(
 		agents.reduce<(typeof agents)[number] | null>(
 			(best, row) => (best && (best.lethality ?? 0) >= (row.lethality ?? 0) ? best : row),
@@ -120,8 +129,9 @@
 	>
 		{#snippet note()}
 			<p>
-				A letalidade só é calculada para as famílias com mais óbitos, todas com mais de mil
-				acidentes no ano. Em famílias pequenas, poucos casos produziriam taxas extremas.
+				A letalidade só é calculada para as {TOP} famílias com mais óbitos; a menor delas teve {formatInteger(
+					smallestBase
+				)} acidentes no ano. Em famílias pequenas, poucos casos produziriam taxas extremas.
 			</p>
 			<p>São os mesmos agentes do gráfico de óbitos; o mais letal está destacado.</p>
 		{/snippet}
@@ -156,10 +166,14 @@
 		slug="obitos-por-parte-do-corpo-{year}"
 	>
 		{#snippet note()}
-			<p>
-				Nos acidentes não fatais a parte mais atingida é outra: a tabela traz acidentes e óbitos de
-				todas as partes.
-			</p>
+			{#if mostInjured && mostInjured.family !== bodyParts[0]?.family}
+				<p>
+					Contando todos os acidentes, a parte mais atingida é outra: {mostInjured.family}, com {formatInteger(
+						mostInjured.accidents
+					)} acidentes e {formatInteger(mostInjured.deaths)} óbitos.
+				</p>
+			{/if}
+			<p>A tabela traz acidentes e óbitos de todas as partes.</p>
 			{@render coverageNote(coverageOf(causes.bodyParts), 'parte do corpo')}
 		{/snippet}
 		{#snippet chart()}
