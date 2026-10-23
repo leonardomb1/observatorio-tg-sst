@@ -2,7 +2,6 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '#lib/components/Button.svelte';
-	import Disclosure from '#lib/components/consulta/Disclosure.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -25,7 +24,6 @@
 			Pergunte em português sobre acidentes e doenças do trabalho no Brasil. O assistente consulta o
 			mesmo banco dos painéis e as normas regulamentadoras, e mostra como chegou a cada número.
 		</p>
-		<Disclosure />
 	</header>
 
 	{#if !data.configured}

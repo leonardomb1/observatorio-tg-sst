@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Conversation from '#lib/components/consulta/Conversation.svelte';
-	import Disclosure from '#lib/components/consulta/Disclosure.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -16,7 +15,6 @@
 	<header class="l-stack">
 		<a href={resolve('/consulta')} class="back">← Consultas</a>
 		<h1>{data.title ?? 'Nova consulta'}</h1>
-		<Disclosure />
 	</header>
 
 	<Conversation
