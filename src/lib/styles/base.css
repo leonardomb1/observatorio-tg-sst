@@ -89,6 +89,56 @@
 		border-block-start: var(--border);
 	}
 
+	input[type='checkbox'],
+	input[type='radio'] {
+		appearance: none;
+		display: inline-grid;
+		place-content: center;
+		inline-size: 1rem;
+		block-size: 1rem;
+		margin: 0;
+		border: 1px solid var(--rule-strong);
+		background: var(--surface);
+		vertical-align: -0.15em;
+	}
+
+	input[type='checkbox'] {
+		border-radius: var(--radius);
+	}
+
+	input[type='radio'] {
+		border-radius: 50%;
+	}
+
+	input[type='checkbox']:checked,
+	input[type='radio']:checked {
+		border-color: var(--ink);
+		background: var(--ink);
+	}
+
+	input[type='checkbox']:checked::after {
+		content: '';
+		inline-size: 0.3rem;
+		block-size: 0.55rem;
+		border: solid var(--paper);
+		border-width: 0 2px 2px 0;
+		transform: translateY(-1px) rotate(45deg);
+	}
+
+	input[type='radio']:checked::after {
+		content: '';
+		inline-size: 0.4rem;
+		block-size: 0.4rem;
+		border-radius: 50%;
+		background: var(--paper);
+	}
+
+	button:disabled,
+	input:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
 	.visually-hidden {
 		position: absolute;
 		inline-size: 1px;

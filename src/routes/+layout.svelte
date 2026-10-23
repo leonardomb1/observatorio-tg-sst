@@ -3,9 +3,13 @@
 	import '@fontsource-variable/source-sans-3';
 	import '#lib/styles/app.css';
 	import { resolve } from '$app/paths';
+	import Toasts from '#lib/components/Toasts.svelte';
+	import { setToaster, Toaster } from '#lib/components/toast.svelte.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+
+	setToaster(new Toaster());
 </script>
 
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -28,6 +32,8 @@
 		</small>
 	</div>
 </footer>
+
+<Toasts />
 
 <style>
 	.skip-link {
