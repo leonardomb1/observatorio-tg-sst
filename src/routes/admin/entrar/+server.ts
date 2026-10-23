@@ -22,5 +22,5 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		Buffer.from(JSON.stringify(flow)).toString('base64url'),
 		flowCookie(url)
 	);
-	redirect(303, start.url);
+	redirect(303, start.url, { external: [new URL(oidcConfig.issuer).origin] });
 };

@@ -8,5 +8,6 @@ export const POST: RequestHandler = async ({ url, cookies }) => {
 	const idToken = await destroySession(cookies, url);
 	const home = new URL('/', url).toString();
 	const target = oidcConfig ? await endSessionUrl(oidcConfig, idToken, home) : null;
-	redirect(303, target ?? '/');
+	if (!target || !oidcConfig) redirect(303, '/');
+	redirect(303, target, { external: [new URL(oidcConfig.issuer).origin] });
 };

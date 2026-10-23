@@ -15,6 +15,13 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const flow = raw
 		? Flow.safeParse(JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')))
 		: null;
+	const providerError = url.searchParams.get('error');
+	if (providerError) {
+		error(
+			400,
+			`O Authentik recusou o login: ${url.searchParams.get('error_description') ?? providerError}.`
+		);
+	}
 	const code = url.searchParams.get('code');
 	if (!flow?.success || !code || url.searchParams.get('state') !== flow.data.state) {
 		error(400, 'Sessão de login expirada ou inválida. Tente entrar novamente.');

@@ -110,7 +110,11 @@ async function publish(db: Db, documentId: string, versionId: string) {
 			.where(eq(documentVersions.id, versionId));
 		await tx
 			.update(documents)
-			.set({ currentVersionId: versionId, status: 'ready', updatedAt: new Date() })
+			.set({
+				currentVersionId: versionId,
+				status: sql`case when ${documents.status} = 'archived' then 'archived'::document_status else 'ready'::document_status end`,
+				updatedAt: new Date()
+			})
 			.where(eq(documents.id, documentId));
 	});
 }
