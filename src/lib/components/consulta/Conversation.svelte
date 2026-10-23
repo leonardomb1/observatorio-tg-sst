@@ -281,7 +281,6 @@
 		color: var(--ink-2);
 	}
 
-
 	.messages {
 		display: flex;
 		flex-direction: column;
