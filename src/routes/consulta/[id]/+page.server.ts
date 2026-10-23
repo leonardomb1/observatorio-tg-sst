@@ -1,4 +1,4 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { ConsultaMessage } from '#lib/consulta.ts';
 import {
 	findConversation,
@@ -6,20 +6,20 @@ import {
 	questionsToday
 } from '#lib/server/assistant/conversations.ts';
 import { assistantModel, dailyQuestions } from '#lib/server/assistant/context.ts';
+import { visitorSubject } from '#lib/server/assistant/visitor.ts';
 import { db } from '#lib/server/db/index.ts';
 import { warehouse } from '#lib/server/warehouse.ts';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, params, url }) => {
-	const user = locals.user;
-	if (!user) redirect(303, `/consulta/entrar?voltar=${encodeURIComponent(url.pathname)}`);
+export const load: PageServerLoad = async ({ cookies, params, url }) => {
+	const subject = visitorSubject(cookies, url);
 	const conversation = /^[0-9a-f-]{36}$/.test(params.id)
-		? await findConversation(db, params.id, user.subject)
+		? await findConversation(db, params.id, subject)
 		: null;
 	if (!conversation) error(404, 'Conversa não encontrada.');
 	const [messages, asked, calendar] = await Promise.all([
 		loadMessages<ConsultaMessage>(db, conversation.id),
-		questionsToday(db, user.subject),
+		questionsToday(db, subject),
 		warehouse.calendar()
 	]);
 	return {

@@ -14,24 +14,18 @@ const securityHeaders = {
 const isAdmin = (path: string) => path === '/admin' || path.startsWith('/admin/');
 const isLogin = (path: string) => path === '/admin/entrar' || path.startsWith('/admin/entrar/');
 const isConsulta = (path: string) => path === '/consulta' || path.startsWith('/consulta/');
-const devUser = { subject: 'dev', username: 'dev', email: null, sessionId: 'dev' };
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;
 
 	if (isAdmin(path) && !isLogin(path)) {
 		if (dev && !oidcConfig) {
-			event.locals.admin = devUser;
+			event.locals.admin = { username: 'dev', email: null, sessionId: 'dev' };
 		} else {
-			const admin = await readSession(event.cookies, 'admin');
+			const admin = await readSession(event.cookies);
 			if (!admin) redirect(303, `/admin/entrar?voltar=${encodeURIComponent(path)}`);
 			event.locals.admin = admin;
 		}
-	}
-
-	if (isConsulta(path)) {
-		const user = dev && !oidcConfig ? devUser : await readSession(event.cookies, 'consulta');
-		if (user) event.locals.user = user;
 	}
 
 	const response = await resolve(event);

@@ -1,6 +1,5 @@
 import {
 	ADMIN_GROUP,
-	ASSISTANT_GROUP,
 	OIDC_CLIENT_ID,
 	OIDC_CLIENT_SECRET,
 	OIDC_ISSUER,
@@ -9,7 +8,6 @@ import {
 import type { OidcConfig } from './oidc.ts';
 
 export const adminGroup = ADMIN_GROUP;
-export const assistantGroup = ASSISTANT_GROUP ?? null;
 
 export const oidcConfig: OidcConfig | null =
 	OIDC_ISSUER && OIDC_CLIENT_ID

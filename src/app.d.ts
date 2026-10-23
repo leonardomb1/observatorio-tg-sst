@@ -1,4 +1,4 @@
-import type { SessionUser } from '#lib/server/auth/session.ts';
+import type { AdminUser } from '#lib/server/auth/session.ts';
 
 declare global {
 	namespace App {
@@ -6,8 +6,7 @@ declare global {
 			id?: string;
 		}
 		interface Locals {
-			admin?: SessionUser;
-			user?: SessionUser;
+			admin?: AdminUser;
 		}
 	}
 }

@@ -59,12 +59,17 @@ export const variables = defineEnvVars({
 			'Claude API key for the assistant. Without it /consulta says it is not configured.',
 		schema: optional
 	},
-	ASSISTANT_GROUP: {
-		description: 'Authentik group allowed to use the assistant. Empty means any signed-in user.',
-		schema: optional
-	},
 	ASSISTANT_DAILY_QUESTIONS: {
-		description: 'Questions each user may ask the assistant per day.',
+		description: 'Questions each visitor (anonymous cookie) may ask the assistant per day.',
 		schema: z.string().default('30').transform(Number).pipe(z.number().int().positive())
+	},
+	ASSISTANT_CONNECTION_DAILY: {
+		description:
+			'Questions per network address per day, so clearing the cookie does not reset the quota.',
+		schema: z.string().default('60').transform(Number).pipe(z.number().int().positive())
+	},
+	ASSISTANT_GLOBAL_DAILY: {
+		description: 'Questions the whole site may send to the model per day; caps the API bill.',
+		schema: z.string().default('1000').transform(Number).pipe(z.number().int().positive())
 	}
 });

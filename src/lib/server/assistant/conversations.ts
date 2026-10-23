@@ -114,18 +114,16 @@ export async function closeUsage(
 	await db.update(assistantUsage).set(totals).where(eq(assistantUsage.id, id));
 }
 
-/** Questions asked since midnight in Brasília. */
-export async function questionsToday(db: Db, subject: string): Promise<number> {
+/** Questions asked since midnight in Brasília, by one visitor or, without a subject, by everyone. */
+export async function questionsToday(db: Db, subject?: string): Promise<number> {
+	const midnight = sql`date_trunc('day', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo'`;
 	const [row] = await db
 		.select({ total: count() })
 		.from(assistantUsage)
 		.where(
 			and(
-				eq(assistantUsage.subject, subject),
-				gte(
-					assistantUsage.createdAt,
-					sql`date_trunc('day', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo'`
-				)
+				gte(assistantUsage.createdAt, midnight),
+				subject ? eq(assistantUsage.subject, subject) : undefined
 			)
 		);
 	return row?.total ?? 0;

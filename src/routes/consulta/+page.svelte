@@ -28,14 +28,6 @@
 
 	{#if !data.configured}
 		<p>O assistente ainda não está configurado neste servidor.</p>
-	{:else if !data.user}
-		<section class="l-stack">
-			<p>
-				Para limitar o custo do serviço, a consulta pede login. Cada pessoa pode fazer
-				{data.dailyQuestions} perguntas por dia.
-			</p>
-			<p><a class="enter" href={resolve('/consulta/entrar')}>Entrar para perguntar</a></p>
-		</section>
 	{:else}
 		<section class="l-stack">
 			<div class="bar">
@@ -61,11 +53,6 @@
 					{/each}
 				</ul>
 			{/if}
-
-			<form method="POST" action={resolve('/consulta/sair')} class="leave">
-				<span>Conectado como {data.user.username}.</span>
-				<button type="submit">Sair</button>
-			</form>
 		</section>
 	{/if}
 </div>
@@ -80,15 +67,6 @@
 		font-size: var(--text-lg);
 	}
 
-	.enter {
-		display: inline-block;
-		padding: var(--space-2) var(--space-4);
-		border-radius: var(--radius);
-		background: var(--ink);
-		color: var(--paper);
-		text-decoration: none;
-	}
-
 	.bar {
 		display: flex;
 		flex-wrap: wrap;
@@ -97,8 +75,7 @@
 	}
 
 	.quota,
-	time,
-	.leave {
+	time {
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 	}
@@ -119,13 +96,5 @@
 		justify-content: space-between;
 		padding-block: var(--space-2);
 		border-block-end: var(--border);
-	}
-
-	.leave button {
-		padding: 0;
-		border: 0;
-		background: none;
-		color: inherit;
-		text-decoration: underline;
 	}
 </style>
