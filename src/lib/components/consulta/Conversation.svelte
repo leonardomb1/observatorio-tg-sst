@@ -220,7 +220,11 @@
 				{/if}
 			</div>
 			<div class="hints">
-				<span>Enter envia · Shift+Enter quebra a linha</span>
+				<span
+					>Respostas geradas por IA (Claude, da Anthropic); confira o SQL e as fontes. <a
+						href={resolve('/(institucional)/ia')}>Saiba mais</a
+					></span
+				>
 				<span>
 					{remaining > 0
 						? `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`
@@ -408,6 +412,10 @@
 		justify-content: space-between;
 		color: var(--ink-2);
 		font-size: var(--text-xs);
+	}
+
+	.hints a {
+		color: inherit;
 	}
 
 	.suggestions {

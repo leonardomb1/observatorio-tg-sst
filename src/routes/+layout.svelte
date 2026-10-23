@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import type { Attachment } from 'svelte/attachments';
 	import { prefersReducedMotion } from 'svelte/motion';
+	import { AUTHOR, CONTACT_EMAIL } from '#lib/contact.ts';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import { setToaster, Toaster } from '#lib/components/toast.svelte.ts';
 	import type { LayoutProps } from './$types';
@@ -98,10 +99,24 @@
 </main>
 
 <footer class="site-footer">
-	<div class="l-page">
-		<small>
-			Fontes: INSS, Previdência Social, MTE/PDET, OIT. Trabalho de Graduação, Fatec Indaiatuba.
-		</small>
+	<div class="l-page footer-inner">
+		<p class="credit">
+			<a href={resolve('/(institucional)/sobre')}>Observatório SST</a> · {AUTHOR}
+		</p>
+		<nav aria-label="Institucional">
+			<ul class="links">
+				<li><a href={resolve('/(institucional)/sobre')}>Sobre</a></li>
+				<li><a href={resolve('/(institucional)/fontes')}>Fontes e dados</a></li>
+				<li><a href={resolve('/(institucional)/ia')}>Inteligência artificial</a></li>
+				<li><a href={resolve('/(institucional)/privacidade')}>Privacidade</a></li>
+				<li><a href={resolve('/(institucional)/termos')}>Termos de uso</a></li>
+				<li><a href="mailto:{CONTACT_EMAIL}">Contato</a></li>
+			</ul>
+		</nav>
+		<p class="note">
+			A consulta usa inteligência artificial (Claude, da Anthropic) e pode errar: confira o SQL e as
+			fontes de cada resposta.
+		</p>
 	</div>
 </footer>
 
@@ -209,6 +224,46 @@
 
 	.site-footer {
 		border-block-start: var(--border);
-		padding-block: var(--space-5);
+		padding-block: var(--space-5) var(--space-6);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+	}
+
+	.footer-inner {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3) var(--space-6);
+		align-items: baseline;
+		justify-content: space-between;
+	}
+
+	.site-footer .credit a {
+		color: var(--ink);
+		font-family: var(--font-serif);
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		padding: 0;
+		margin: 0;
+		list-style: none;
+	}
+
+	.site-footer .links a {
+		color: var(--ink-2);
+	}
+
+	.site-footer .links a:hover {
+		color: var(--ink);
+	}
+
+	.note {
+		flex-basis: 100%;
+		color: var(--ink-3);
+		font-size: var(--text-xs);
 	}
 </style>
