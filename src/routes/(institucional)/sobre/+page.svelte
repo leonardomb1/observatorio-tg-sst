@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { AUTHOR, CONTACT_EMAIL } from '#lib/contact.ts';
+	import { CONTACT_EMAIL } from '#lib/contact.ts';
 </script>
 
 <svelte:head>
@@ -20,11 +20,11 @@
 	gestores e profissionais de saúde e segurança no trabalho.
 </p>
 
-<h2>Quem mantém</h2>
+<h2>O projeto</h2>
 <p>
-	O observatório é um projeto acadêmico de {AUTHOR}, desenvolvido como Trabalho de Graduação na
-	Fatec Indaiatuba. É mantido e custeado pelo autor. Não é um canal oficial da Fatec, do Centro
-	Paula Souza nem dos órgãos que produzem os dados.
+	O observatório é um projeto acadêmico, desenvolvido como Trabalho de Graduação na Fatec
+	Indaiatuba. Não é um canal oficial da Fatec, do Centro Paula Souza nem dos órgãos que produzem os
+	dados.
 </p>
 
 <h2>Como os números são calculados</h2>

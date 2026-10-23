@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { AUTHOR, CONTACT_EMAIL, POLICY_DATE } from '#lib/contact.ts';
+	import { CONTACT_EMAIL, POLICY_DATE } from '#lib/contact.ts';
 </script>
 
 <svelte:head>
@@ -13,10 +13,10 @@
 
 <h2>O serviço</h2>
 <p>
-	O Observatório SST é um projeto acadêmico, gratuito e sem fins comerciais, mantido por {AUTHOR}.
-	Oferece painéis com dados públicos sobre acidentes de trabalho e uma consulta em linguagem natural
-	com inteligência artificial. Não é um canal oficial da Fatec, do Centro Paula Souza nem dos órgãos
-	que produzem os dados.
+	O Observatório SST é um projeto acadêmico, gratuito e sem fins comerciais, desenvolvido como
+	Trabalho de Graduação na Fatec Indaiatuba. Oferece painéis com dados públicos sobre acidentes de
+	trabalho e uma consulta em linguagem natural com inteligência artificial. Não é um canal oficial
+	da Fatec, do Centro Paula Souza nem dos órgãos que produzem os dados.
 </p>
 
 <h2>Dados e informações</h2>

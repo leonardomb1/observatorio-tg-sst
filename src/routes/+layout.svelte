@@ -6,7 +6,7 @@
 	import { page } from '$app/state';
 	import type { Attachment } from 'svelte/attachments';
 	import { prefersReducedMotion } from 'svelte/motion';
-	import { AUTHOR, CONTACT_EMAIL } from '#lib/contact.ts';
+	import { CONTACT_EMAIL } from '#lib/contact.ts';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import { setToaster, Toaster } from '#lib/components/toast.svelte.ts';
@@ -104,7 +104,8 @@
 	<footer class="site-footer">
 		<div class="l-page footer-inner">
 			<p class="credit">
-				<a href={resolve('/(institucional)/sobre')}>Observatório SST</a> · {AUTHOR}
+				<a href={resolve('/(institucional)/sobre')}>Observatório SST</a>, Trabalho de Graduação da
+				Fatec Indaiatuba
 			</p>
 			<nav aria-label="Institucional">
 				<ul class="links">

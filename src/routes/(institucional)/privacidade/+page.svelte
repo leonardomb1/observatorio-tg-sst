@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { AUTHOR, CONTACT_EMAIL, POLICY_DATE } from '#lib/contact.ts';
+	import { CONTACT_EMAIL, POLICY_DATE } from '#lib/contact.ts';
 </script>
 
 <svelte:head>
@@ -22,7 +22,7 @@
 
 <h2>Quem é o controlador</h2>
 <p>
-	{AUTHOR}, pessoa física, autor do projeto acadêmico descrito em
+	O responsável pelo Observatório SST, Trabalho de Graduação da Fatec Indaiatuba descrito em
 	<a href={resolve('/(institucional)/sobre')}>Sobre</a>. Contato para qualquer assunto de
 	privacidade:
 	<a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a>.
