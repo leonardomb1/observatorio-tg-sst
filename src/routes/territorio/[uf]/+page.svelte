@@ -1,15 +1,27 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import BrazilMap from '#lib/charts/BrazilMap.svelte';
 	import Chart from '#lib/charts/Chart.svelte';
 	import { compareLines } from '#lib/charts/options.ts';
 	import KpiCard from '#lib/components/KpiCard.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { formatDecimal, formatInteger } from '#lib/format.ts';
+	import { leader, listNames } from '#lib/findings.ts';
 	import { catSource } from '#lib/sources.ts';
 	import { yearStatusLabel } from '#lib/status.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	const solid = $derived(data.municipalities.filter((row) => row.enoughJobs));
+	const municipalLead = $derived(
+		leader(
+			solid,
+			(row) => row.accidentRate,
+			(rate) => formatDecimal(rate)
+		)
+	);
+	const minimumJobs = $derived(data.municipalities[0]?.minimumJobs ?? null);
 
 	const source = $derived(catSource(data.calendar.publishedUntil));
 	const year = $derived(data.calendar.lastConsolidated);
@@ -141,6 +153,71 @@
 			/>
 		{/snippet}
 	</Panel>
+
+	{#if data.municipalities.length > 1}
+		<Panel
+			title={!municipalLead
+				? `Taxa de acidentes nos municípios de ${data.uf}`
+				: municipalLead.tied.length
+					? `${listNames([municipalLead.row, ...municipalLead.tied].map((row) => row.name))} empatam na maior taxa de acidentes em ${year}`
+					: `${municipalLead.row.name} tem a maior taxa de acidentes de ${data.uf} em ${year}`}
+			subtitle="Acidentes com CAT por 100 mil vínculos formais, sem administração pública, por município do empregador, {year}"
+			{source}
+			columns={[
+				{ key: 'name', label: 'Município' },
+				{
+					key: 'accidentRate',
+					label: 'Acidentes por 100 mil',
+					numeric: true,
+					format: (cell) => formatDecimal(cell as number | null)
+				},
+				{
+					key: 'deathRate',
+					label: 'Óbitos por 100 mil',
+					numeric: true,
+					format: (cell) => formatDecimal(cell as number | null, 2)
+				},
+				{
+					key: 'accidents',
+					label: 'Acidentes',
+					numeric: true,
+					format: (cell) => formatInteger(cell as number)
+				},
+				{
+					key: 'jobs',
+					label: 'Vínculos',
+					numeric: true,
+					format: (cell) => formatInteger(cell as number)
+				}
+			]}
+			rows={data.municipalities.toSorted((a, b) => (b.accidentRate ?? 0) - (a.accidentRate ?? 0))}
+			slug="taxa-acidentes-municipios-{data.sigla}-{year}"
+		>
+			{#snippet note()}
+				{#if minimumJobs !== null}
+					<p>
+						Municípios com menos de {formatInteger(minimumJobs)} vínculos ficam em cinza no mapa: com
+						base pequena, um único acidente muda muito a taxa. Eles continuam na tabela.
+					</p>
+				{/if}
+				<p>Os acidentes são atribuídos ao município do empregador, como no anuário oficial.</p>
+			{/snippet}
+			{#snippet chart()}
+				<BrazilMap
+					scope={{ kind: 'municipalities', uf: data.sigla }}
+					areas={data.municipalities.map((row) => ({
+						key: row.code,
+						label: row.name,
+						value: row.enoughJobs ? row.accidentRate : null
+					}))}
+					format={(rate) => formatDecimal(rate)}
+					label="Mapa da taxa de acidentes por município de {data.uf} em {year}."
+					height="32rem"
+					missing="Base insuficiente: menos de {formatInteger(minimumJobs)} vínculos"
+				/>
+			{/snippet}
+		</Panel>
+	{/if}
 </div>
 
 <style>

@@ -158,3 +158,54 @@ export const sectorRanking = (query: Query) =>
 			minimumJobs: row.base_minima
 		}));
 	});
+
+const MunicipalityRow = z.object({
+	municipio_codigo: z.string(),
+	municipio: z.string().nullable(),
+	vinculos_sem_adm_publica: z.number(),
+	acidentes_sem_adm_publica: z.number(),
+	obitos_sem_adm_publica: z.number(),
+	acidentes_por_100mil_vinculos_sem_adm_publica: z.number().nullable(),
+	obitos_por_100mil_vinculos_sem_adm_publica: z.number().nullable(),
+	base_suficiente: z.number().int(),
+	base_minima: z.number().int()
+});
+
+export interface MunicipalRate {
+	/** Six-digit IBGE code, without the check digit, as published in the CAT. */
+	code: string;
+	name: string;
+	jobs: number;
+	accidents: number;
+	deaths: number;
+	accidentRate: number | null;
+	deathRate: number | null;
+	/** Below the minimum base the rate swings too much to be read on its own. */
+	enoughJobs: boolean;
+	minimumJobs: number;
+}
+
+/** Every municipality of a state in a year, with the default denominator. */
+export const municipalRates = (query: Query) =>
+	cached('municipal-rates', async (uf: string, year: number) => {
+		const result = await rows(
+			query,
+			MunicipalityRow,
+			`SELECT municipio_codigo, municipio, vinculos_sem_adm_publica, acidentes_sem_adm_publica,
+				obitos_sem_adm_publica, acidentes_por_100mil_vinculos_sem_adm_publica,
+				obitos_por_100mil_vinculos_sem_adm_publica, base_suficiente, base_minima
+			FROM taxa_incidencia_municipio WHERE uf_sigla = ? AND ano = ?`,
+			[uf, year]
+		);
+		return result.map((row): MunicipalRate => ({
+			code: row.municipio_codigo,
+			name: row.municipio ?? `Município ${row.municipio_codigo}`,
+			jobs: row.vinculos_sem_adm_publica,
+			accidents: row.acidentes_sem_adm_publica,
+			deaths: row.obitos_sem_adm_publica,
+			accidentRate: row.acidentes_por_100mil_vinculos_sem_adm_publica,
+			deathRate: row.obitos_por_100mil_vinculos_sem_adm_publica,
+			enoughJobs: row.base_suficiente === 1,
+			minimumJobs: row.base_minima
+		}));
+	});

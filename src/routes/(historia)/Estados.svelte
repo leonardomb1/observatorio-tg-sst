@@ -125,7 +125,8 @@
 		{#snippet chart()}
 			<div class="split">
 				<BrazilMap
-					items={ufs.map((row) => ({ uf: row.uf, value: value(row) }))}
+					scope={{ kind: 'states' }}
+					areas={ufs.map((row) => ({ key: row.uf, label: row.name, value: value(row) }))}
 					{format}
 					label="Mapa da taxa de {measure} por estado em {filters.year}; clique em um estado para ver a série dele."
 					onselect={(uf) => {

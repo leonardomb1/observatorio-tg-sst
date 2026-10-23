@@ -12,7 +12,10 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	]);
 	const rows = series.filter((row) => row.accidentRate !== null);
 	if (rows.length === 0) error(404, 'Unidade federativa não encontrada.');
-	const ranking = await warehouse.ufRanking(calendar.lastConsolidated);
+	const [ranking, municipalities] = await Promise.all([
+		warehouse.ufRanking(calendar.lastConsolidated),
+		warehouse.municipalRates(uf, calendar.lastConsolidated)
+	]);
 	const position =
 		ranking
 			.toSorted((a, b) => (b.accidentRate ?? 0) - (a.accidentRate ?? 0))
@@ -21,6 +24,8 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	return {
 		calendar,
 		uf: rows[0]?.name ?? uf,
+		sigla: uf,
+		municipalities,
 		rows,
 		brazil: brazil.filter((row) => row.accidentRate !== null),
 		position,

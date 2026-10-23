@@ -7,11 +7,18 @@ export const chartSpec = z.object({
 	tipo: z
 		.enum(['colunas', 'barras', 'linhas', 'mapa'])
 		.describe(
-			'colunas para séries anuais, barras horizontais para ranking de categorias, linhas para comparar séries no tempo, mapa para comparar as UFs no mapa do Brasil (categoria com a sigla ou o nome da UF, uma série)'
+			'colunas para séries anuais, barras horizontais para ranking de categorias, linhas para comparar séries no tempo, mapa para comparar UFs no mapa do Brasil ou, com uf, os municípios de um estado (uma série)'
 		),
 	categoria: z
 		.string()
-		.describe('Coluna do resultado usada no eixo de categorias (ano, UF, CNAE).'),
+		.describe(
+			'Coluna do resultado usada no eixo de categorias (ano, UF, CNAE). Em mapa de estados, a sigla ou o nome da UF; em mapa de municípios, municipio_codigo.'
+		),
+	uf: z
+		.string()
+		.length(2)
+		.optional()
+		.describe('Só para mapa de municípios: sigla da UF cujos municípios serão desenhados.'),
 	series: z
 		.array(z.object({ coluna: z.string(), rotulo: z.string() }))
 		.min(1)

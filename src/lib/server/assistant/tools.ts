@@ -2,7 +2,7 @@ import { tool, type InferUITools } from 'ai';
 import * as z from 'zod';
 import { chartSpec } from '#lib/consulta.ts';
 import { toUf } from '#lib/uf.ts';
-import { readOnly, type QueryResult } from '../catalog/consulta.ts';
+import { MAP_ROWS, MAX_ROWS, readOnly, type QueryResult } from '../catalog/consulta.ts';
 import type { Query } from '../catalog/query.ts';
 import type { Db } from '../db/client.ts';
 import { search } from '../rag/search.ts';
@@ -62,7 +62,7 @@ export function createTools(deps: ToolDeps, firstRef: number) {
 				'Executa uma consulta SQL e exibe o resultado ao usuário como gráfico com tabela e download. Devolve as mesmas linhas para você comentar.',
 			inputSchema: chartSpec.extend({ sql }),
 			execute: async ({ sql, ...spec }) => {
-				const result = await readOnly(deps.query, sql);
+				const result = await readOnly(deps.query, sql, spec.tipo === 'mapa' ? MAP_ROWS : MAX_ROWS);
 				const missing = [spec.categoria, ...spec.series.map((serie) => serie.coluna)].filter(
 					(column) => result.rows.length > 0 && !result.columns.includes(column)
 				);
@@ -71,12 +71,18 @@ export function createTools(deps: ToolDeps, firstRef: number) {
 						`Colunas ausentes no resultado: ${missing.join(', ')}. Colunas disponíveis: ${result.columns.join(', ')}.`
 					);
 				}
+				if (spec.tipo === 'mapa' && spec.uf && !toUf(spec.uf)) {
+					throw new Error(`UF desconhecida para o mapa de municípios: ${spec.uf}.`);
+				}
+				const fits = (cell: string) => (spec.uf ? /^\d{6,7}$/.test(cell) : toUf(cell) !== null);
 				if (
 					spec.tipo === 'mapa' &&
-					result.rows.some((row) => toUf(String(row[spec.categoria] ?? '')) === null)
+					result.rows.some((row) => !fits(String(row[spec.categoria] ?? '')))
 				) {
 					throw new Error(
-						'Para mapa, a coluna de categoria precisa trazer a sigla ou o nome da UF em todas as linhas.'
+						spec.uf
+							? 'Para mapa de municípios, a categoria precisa ser municipio_codigo em todas as linhas.'
+							: 'Para mapa de estados, a categoria precisa trazer a sigla ou o nome da UF em todas as linhas.'
 					);
 				}
 				return { spec, ...result };

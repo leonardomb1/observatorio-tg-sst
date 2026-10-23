@@ -3,7 +3,7 @@
 	import BrazilMap from '#lib/charts/BrazilMap.svelte';
 	import Chart from '#lib/charts/Chart.svelte';
 	import { numeric, specFormat, type ConsultaMessage } from '#lib/consulta.ts';
-	import { toUf } from '#lib/uf.ts';
+	import { toUf, UF_NAMES } from '#lib/uf.ts';
 	import type { Column } from '#lib/csv.ts';
 	import Panel from '#lib/components/Panel.svelte';
 	import { catSource } from '#lib/sources.ts';
@@ -95,6 +95,21 @@
 		return `${item}${pages}`;
 	}
 
+	/** A result row as a map area: municipal code or state abbreviation, with its name. */
+	function mapArea(
+		spec: { categoria: string; uf?: string | undefined; series: { coluna: string }[] },
+		row: Row
+	) {
+		const cell = String(row[spec.categoria] ?? '');
+		const value = numeric(row[spec.series[0]?.coluna ?? '']);
+		if (spec.uf) {
+			const name = typeof row.municipio === 'string' ? row.municipio : cell;
+			return { key: cell.slice(0, 6), label: name, value };
+		}
+		const uf = toUf(cell) ?? cell;
+		return { key: uf, label: UF_NAMES[uf] ?? cell, value };
+	}
+
 	async function copy() {
 		await navigator.clipboard.writeText(answerText.trim());
 		copied = true;
@@ -172,10 +187,10 @@
 								<BrazilMap
 									label={spec.titulo}
 									{format}
-									items={rows.map((row) => ({
-										uf: toUf(String(row[spec.categoria] ?? '')) ?? '',
-										value: numeric(row[spec.series[0]?.coluna ?? ''])
-									}))}
+									scope={spec.uf
+										? { kind: 'municipalities', uf: spec.uf.toUpperCase() }
+										: { kind: 'states' }}
+									areas={rows.map((row) => mapArea(spec, row))}
 								/>
 							{:else}
 								<Chart

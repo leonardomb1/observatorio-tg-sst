@@ -43,3 +43,11 @@ describe('guardSql', () => {
 		expect(() => guardSql(sql)).toThrow(UnsafeSql);
 	});
 });
+
+describe('guardSql with a larger cap', () => {
+	it('lets a map query keep more rows', () => {
+		expect(guardSql('SELECT municipio_codigo FROM taxa_incidencia_municipio', 1000)).toBe(
+			'SELECT municipio_codigo FROM taxa_incidencia_municipio\nLIMIT 1001'
+		);
+	});
+});
