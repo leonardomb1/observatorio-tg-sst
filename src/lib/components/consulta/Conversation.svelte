@@ -144,7 +144,7 @@
 		<header class="greeting">
 			<h1>O que você quer saber sobre acidentes de trabalho?</h1>
 			<p>
-				As respostas vêm dos dados do observatório e das normas regulamentadoras, com o SQL e as
+				As respostas vêm dos dados do observatório e das normas regulamentadoras, com os dados e as
 				fontes de cada número.
 			</p>
 		</header>
@@ -221,7 +221,7 @@
 			</div>
 			<div class="hints">
 				<span
-					>Respostas geradas por IA (Claude, da Anthropic); confira o SQL e as fontes. <a
+					>Respostas geradas por IA (Claude, da Anthropic); confira os dados e as fontes. <a
 						href={resolve('/(institucional)/ia')}>Saiba mais</a
 					></span
 				>
@@ -258,13 +258,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-6);
-		max-inline-size: 48rem;
-		min-block-size: 60vh;
-		margin-inline: auto;
+		padding-block-end: 11rem;
 	}
 
 	.conversation.empty {
 		justify-content: center;
+		min-block-size: calc(100dvh - 24rem);
 	}
 
 	.greeting {
@@ -312,18 +311,21 @@
 	}
 
 	.composer {
-		position: relative;
+		position: fixed;
+		z-index: 1;
+		inset-block-end: 0;
+		inset-inline: 0;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		padding-block-end: var(--space-4);
-		background: var(--paper);
+		align-items: center;
+		padding: var(--space-5) var(--gutter) var(--space-4);
+		background: linear-gradient(to bottom, transparent, var(--paper) var(--space-5));
 	}
 
-	.conversation:not(.empty) .composer {
-		position: sticky;
-		inset-block-end: 0;
-		padding-block-start: var(--space-3);
+	.field,
+	.hints {
+		inline-size: min(48rem, 100%);
 	}
 
 	.jump {

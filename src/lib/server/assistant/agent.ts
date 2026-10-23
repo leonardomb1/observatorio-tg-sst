@@ -9,10 +9,12 @@ import {
 	toUIMessageStream,
 	validateUIMessages,
 	type LanguageModel,
-	type UIMessage
+	type UIMessage,
+	type UIMessageChunk
 } from 'ai';
 import { datamartColumns } from '../catalog/consulta.ts';
 import { systemPrompt } from './prompt.ts';
+import { redactChunk } from './redact.ts';
 import { createTools, type ToolDeps } from './tools.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
@@ -87,6 +89,13 @@ export async function runAgent(model: LanguageModel, deps: ToolDeps, turn: Turn)
 		}
 	});
 
+	const redact = new TransformStream<UIMessageChunk, UIMessageChunk>({
+		transform(chunk, controller) {
+			const safe = redactChunk(chunk);
+			if (safe) controller.enqueue(safe);
+		}
+	});
+
 	return createUIMessageStreamResponse({
 		stream: toUIMessageStream({
 			stream: result.stream,
@@ -97,6 +106,6 @@ export async function runAgent(model: LanguageModel, deps: ToolDeps, turn: Turn)
 			onEnd: async ({ messages: all, isAborted, outcome }) => {
 				await turn.onMessages(all, !isAborted && outcome.status === 'completed');
 			}
-		})
+		}).pipeThrough(redact)
 	});
 }

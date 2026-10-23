@@ -137,10 +137,6 @@
 							/>
 						{/snippet}
 					</Panel>
-					<details class="sql">
-						<summary>SQL do gráfico</summary>
-						<pre><code>{segment.part.input.sql}</code></pre>
-					</details>
 				</div>
 			{:else if segment.part.state === 'output-error'}
 				<p class="meta">Não foi possível montar o gráfico: {segment.part.errorText}</p>
@@ -203,24 +199,9 @@
 		gap: var(--space-2);
 	}
 
-	.sql {
-		font-size: var(--text-sm);
-	}
-
-	.sql summary,
 	.sources summary {
 		color: var(--ink-2);
 		cursor: pointer;
-	}
-
-	pre {
-		overflow-x: auto;
-		padding: var(--space-3);
-		margin-block-start: var(--space-2);
-		border-radius: var(--radius);
-		background: var(--surface);
-		font-size: var(--text-xs);
-		white-space: pre-wrap;
 	}
 
 	.sources {

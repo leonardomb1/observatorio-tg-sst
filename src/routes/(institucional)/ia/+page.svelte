@@ -21,7 +21,7 @@
 <h2>O que ela faz</h2>
 <ul>
 	<li>
-		Consulta o mesmo banco de dados dos painéis e mostra o SQL e as linhas usadas em cada número.
+		Consulta o mesmo banco de dados dos painéis e mostra a tabela de dados usada em cada número.
 	</li>
 	<li>Monta gráficos a partir dessas consultas.</li>
 	<li>Busca trechos das normas regulamentadoras e cita a fonte de cada afirmação.</li>
@@ -30,8 +30,8 @@
 <h2>Limites</h2>
 <ul>
 	<li>
-		O modelo pode errar ao escrever uma consulta ou ao resumir um trecho. Confira o SQL, a tabela e
-		as fontes exibidas em cada resposta.
+		O modelo pode errar ao escrever uma consulta ou ao resumir um trecho. Confira a tabela e as
+		fontes exibidas em cada resposta.
 	</li>
 	<li>
 		A resposta é informação geral. Não é parecer jurídico, laudo técnico nem orientação médica, e

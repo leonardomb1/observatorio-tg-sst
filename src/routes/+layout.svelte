@@ -98,27 +98,29 @@
 	{@render children()}
 </main>
 
-<footer class="site-footer">
-	<div class="l-page footer-inner">
-		<p class="credit">
-			<a href={resolve('/(institucional)/sobre')}>Observatório SST</a> · {AUTHOR}
-		</p>
-		<nav aria-label="Institucional">
-			<ul class="links">
-				<li><a href={resolve('/(institucional)/sobre')}>Sobre</a></li>
-				<li><a href={resolve('/(institucional)/fontes')}>Fontes e dados</a></li>
-				<li><a href={resolve('/(institucional)/ia')}>Inteligência artificial</a></li>
-				<li><a href={resolve('/(institucional)/privacidade')}>Privacidade</a></li>
-				<li><a href={resolve('/(institucional)/termos')}>Termos de uso</a></li>
-				<li><a href="mailto:{CONTACT_EMAIL}">Contato</a></li>
-			</ul>
-		</nav>
-		<p class="note">
-			A consulta usa inteligência artificial (Claude, da Anthropic) e pode errar: confira o SQL e as
-			fontes de cada resposta.
-		</p>
-	</div>
-</footer>
+{#if !page.route.id?.startsWith('/consulta')}
+	<footer class="site-footer">
+		<div class="l-page footer-inner">
+			<p class="credit">
+				<a href={resolve('/(institucional)/sobre')}>Observatório SST</a> · {AUTHOR}
+			</p>
+			<nav aria-label="Institucional">
+				<ul class="links">
+					<li><a href={resolve('/(institucional)/sobre')}>Sobre</a></li>
+					<li><a href={resolve('/(institucional)/fontes')}>Fontes e dados</a></li>
+					<li><a href={resolve('/(institucional)/ia')}>Inteligência artificial</a></li>
+					<li><a href={resolve('/(institucional)/privacidade')}>Privacidade</a></li>
+					<li><a href={resolve('/(institucional)/termos')}>Termos de uso</a></li>
+					<li><a href="mailto:{CONTACT_EMAIL}">Contato</a></li>
+				</ul>
+			</nav>
+			<p class="note">
+				A consulta usa inteligência artificial (Claude, da Anthropic) e pode errar: confira os dados
+				e as fontes de cada resposta.
+			</p>
+		</div>
+	</footer>
+{/if}
 
 <Toasts />
 

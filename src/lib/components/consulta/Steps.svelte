@@ -91,7 +91,6 @@
 								>
 							{/if}
 						</p>
-						{#if part.input?.sql}<pre><code>{part.input.sql}</code></pre>{/if}
 						{#if part.state === 'output-error'}
 							<p class="note">Consulta recusada: {part.errorText}</p>
 						{:else if part.state === 'output-available' && part.output.rows.length > 0}
@@ -187,16 +186,6 @@
 
 	.note {
 		color: var(--ink-2);
-	}
-
-	pre {
-		overflow-x: auto;
-		padding: var(--space-3);
-		margin-block: var(--space-2);
-		border-radius: var(--radius);
-		background: var(--surface);
-		font-size: var(--text-xs);
-		white-space: pre-wrap;
 	}
 
 	@keyframes shimmer {

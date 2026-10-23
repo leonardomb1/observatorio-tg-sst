@@ -9,7 +9,7 @@
 	<title>Consulta — Observatório SST</title>
 	<meta
 		name="description"
-		content="Pergunte em português sobre acidentes de trabalho no Brasil e receba a resposta com o SQL, a tabela e as fontes usadas."
+		content="Pergunte em português sobre acidentes de trabalho no Brasil e receba a resposta com os dados e as fontes usadas."
 	/>
 </svelte:head>
 

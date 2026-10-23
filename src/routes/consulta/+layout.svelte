@@ -6,8 +6,7 @@
 
 	let { data, children }: LayoutProps = $props();
 
-	const wide = new MediaQuery('(min-width: 60rem)', true);
-	const updated = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
+	const wide = new MediaQuery('(min-width: 64rem)', true);
 	const current = $derived(page.params.id ?? null);
 </script>
 
@@ -28,9 +27,6 @@
 								aria-current={conversation.id === current ? 'page' : undefined}
 							>
 								<span class="title">{conversation.title ?? 'Conversa sem pergunta'}</span>
-								<time datetime={conversation.updatedAt.toISOString()}
-									>{updated.format(conversation.updatedAt)}</time
-								>
 							</a>
 						</li>
 					{/each}
@@ -45,18 +41,21 @@
 <style>
 	.shell {
 		display: grid;
-		gap: var(--space-5) var(--space-7);
+		gap: var(--space-5);
 	}
 
-	@media (width >= 60rem) {
+	/* Equal side columns keep the chat centred on the page, under the fixed question box. */
+	@media (width >= 64rem) {
 		.shell {
-			grid-template-columns: 15rem minmax(0, 1fr);
+			grid-template-columns: minmax(0, 1fr) minmax(0, 48rem) minmax(0, 1fr);
+			gap: var(--space-6);
 			align-items: start;
 		}
 
 		.sidebar {
 			position: sticky;
 			inset-block-start: var(--space-8);
+			max-inline-size: 15rem;
 		}
 	}
 
@@ -112,36 +111,24 @@
 	}
 
 	li a {
-		display: flex;
-		gap: var(--space-2);
-		align-items: baseline;
-		justify-content: space-between;
+		display: block;
 		padding: var(--space-2);
 		border-radius: var(--radius);
 		color: var(--ink-2);
 		text-decoration: none;
 	}
 
-	li a:hover {
-		background: var(--surface);
-		color: var(--ink);
-	}
-
+	li a:hover,
 	li a[aria-current] {
 		background: var(--surface);
 		color: var(--ink);
 	}
 
 	.title {
+		display: block;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	time {
-		flex: none;
-		color: var(--ink-3);
-		font-size: var(--text-xs);
 	}
 
 	.pane {
