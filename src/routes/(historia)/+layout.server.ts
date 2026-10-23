@@ -26,7 +26,6 @@ export const load: LayoutServerLoad = async () => {
 			warehouse.bodyPartFamilies(year),
 			warehouse.injuryFamilies(year)
 		]).then(([agents, bodyParts, injuries]) => ({ year, agents, bodyParts, injuries })),
-		benefits: warehouse.benefitsByYear(),
-		coverage: warehouse.coverage()
+		benefits: warehouse.benefitsByYear()
 	};
 };

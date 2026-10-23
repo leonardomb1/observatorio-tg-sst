@@ -8,7 +8,6 @@
 	import ComoAcontece from './ComoAcontece.svelte';
 	import Estados from './Estados.svelte';
 	import Overview from './Overview.svelte';
-	import Qualidade from './Qualidade.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -38,7 +37,7 @@
 		};
 		resize.observe(story);
 		for (const type of READER_INPUT) addEventListener(type, release, { passive: true });
-		const streamed = untrack(() => [data.causes, data.benefits, data.coverage]);
+		const streamed = untrack(() => [data.causes, data.benefits]);
 		void Promise.allSettled(streamed).then(() => {
 			timer = setTimeout(release, SETTLE_MS);
 		});
@@ -50,7 +49,7 @@
 	<title>Observatório SST — acidentes de trabalho no Brasil</title>
 	<meta
 		name="description"
-		content="Taxas de acidentes e óbitos de trabalho por 100 mil vínculos formais, por estado e atividade, como os acidentes acontecem, os benefícios concedidos e a qualidade dos dados, a partir de microdados públicos da CAT, da RAIS e do INSS."
+		content="Taxas de acidentes e óbitos de trabalho por 100 mil vínculos formais, por estado e atividade, como os acidentes acontecem e os benefícios concedidos."
 	/>
 </svelte:head>
 
@@ -93,23 +92,6 @@
 			<p class="pending pending-tall">Carregando a seção…</p>
 		{:then benefits}
 			<Beneficios {benefits} />
-		{:catch}
-			<p class="pending">Não foi possível carregar esta seção. Recarregue a página.</p>
-		{/await}
-	</StorySection>
-
-	<StorySection id="qualidade" kicker="Qualidade dos dados" title="O que falta na fonte">
-		{#snippet lede()}
-			<p>
-				Os microdados da CAT chegam em arquivos mensais, e nem todos os meses foram publicados
-				completos. Esta grade mostra, mês a mês, o que o observatório recebeu. Anos com lacunas
-				aparecem marcados em todos os gráficos e não são comparados aos anos completos.
-			</p>
-		{/snippet}
-		{#await data.coverage}
-			<p class="pending pending-tall">Carregando a seção…</p>
-		{:then coverage}
-			<Qualidade calendar={data.calendar} {coverage} />
 		{:catch}
 			<p class="pending">Não foi possível carregar esta seção. Recarregue a página.</p>
 		{/await}

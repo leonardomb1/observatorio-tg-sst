@@ -19,9 +19,3 @@ export function inYear(year: number, status: YearStatus): string {
 		? `Em ${year}`
 		: `Em ${year} (ano ${yearStatusLabel[status].toLocaleLowerCase('pt-BR')}, sujeito a revisão)`;
 }
-
-/**
- * Month coverage thresholds, as a share of the expected CAT volume. They mirror the dbt vars
- * cobertura_lacuna and cobertura_baixa, which the datamart does not expose yet.
- */
-export const COVERAGE = { gap: 0.5, low: 0.8 };

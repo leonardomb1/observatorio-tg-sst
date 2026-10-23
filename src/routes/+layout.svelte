@@ -19,8 +19,7 @@
 		{ id: 'estados', label: 'Estados' },
 		{ id: 'atividades', label: 'Atividades' },
 		{ id: 'como-acontece', label: 'Como acontece' },
-		{ id: 'beneficios', label: 'Benefícios' },
-		{ id: 'qualidade', label: 'Qualidade dos dados' }
+		{ id: 'beneficios', label: 'Benefícios' }
 	];
 
 	const home = resolve('/(historia)');

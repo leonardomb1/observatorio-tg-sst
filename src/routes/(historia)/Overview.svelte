@@ -133,7 +133,7 @@
 				<p>
 					Barras claras com contorno tracejado são anos parciais ou provisórios: faltam arquivos
 					mensais na fonte ou comunicações ainda estão chegando. Não compare esses anos com os
-					consolidados. A seção <a href="#qualidade">Qualidade dos dados</a> mostra mês a mês o que falta.
+					consolidados.
 				</p>
 				<p>Denominador: estoque de vínculos formais da RAIS em 31/12, sem a divisão 84 da CNAE.</p>
 			{/snippet}
