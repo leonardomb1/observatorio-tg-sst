@@ -20,9 +20,10 @@ const pool = mysql.createPool({
 	dateStrings: true
 });
 
-pool.on('connection', (connection) => {
-	connection.query(`SET query_timeout = ${STARROCKS_QUERY_TIMEOUT_S}`).catch((error: unknown) => {
-		console.error(JSON.stringify({ level: 'error', source: 'starrocks', message: String(error) }));
+pool.pool.on('connection', (connection) => {
+	connection.query(`SET query_timeout = ${STARROCKS_QUERY_TIMEOUT_S}`, (error) => {
+		if (!error) return;
+		console.error(JSON.stringify({ level: 'error', source: 'starrocks', message: error.message }));
 		connection.destroy();
 	});
 });

@@ -49,3 +49,16 @@ export function formatPointsDelta(value: number | null, digits = 1): string {
 export function formatRatePer100k(value: number | null, digits = 1): string {
 	return value === null ? MISSING : `${decimalFormat(digits).format(value)} por 100 mil vínculos`;
 }
+
+const monthYear = new Intl.DateTimeFormat('pt-BR', {
+	month: 'short',
+	year: 'numeric',
+	timeZone: 'UTC'
+});
+
+/** "ago. de 2026" → "ago/2026", the form used in Brazilian statistical notes. */
+export function formatMonthYear(year: number, month: number): string {
+	const parts = monthYear.formatToParts(new Date(Date.UTC(year, month - 1, 1)));
+	const name = parts.find((part) => part.type === 'month')?.value.replace('.', '') ?? String(month);
+	return `${name}/${year}`;
+}

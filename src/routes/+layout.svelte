@@ -3,6 +3,7 @@
 	import '@fontsource-variable/source-sans-3';
 	import '#lib/styles/app.css';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import { setToaster, Toaster } from '#lib/components/toast.svelte.ts';
 	import type { LayoutProps } from './$types';
@@ -10,6 +11,15 @@
 	let { children }: LayoutProps = $props();
 
 	setToaster(new Toaster());
+
+	const sections = [
+		{ href: resolve('/'), label: 'Visão geral' },
+		{ href: resolve('/territorio'), label: 'Estados' },
+		{ href: resolve('/setores'), label: 'Atividades' }
+	];
+
+	const isCurrent = (href: string) =>
+		href === resolve('/') ? page.url.pathname === href : page.url.pathname.startsWith(href);
 </script>
 
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -17,7 +27,17 @@
 <header class="site-header">
 	<div class="l-page l-cluster header-inner">
 		<a class="brand" href={resolve('/')}>Observatório SST</a>
-		<span class="tagline">Acidentalidade do trabalho no Brasil a partir de dados públicos</span>
+		<nav aria-label="Seções">
+			<ul class="l-cluster sections">
+				{#each sections as section (section.href)}
+					<li>
+						<a href={section.href} aria-current={isCurrent(section.href) ? 'page' : undefined}
+							>{section.label}</a
+						>
+					</li>
+				{/each}
+			</ul>
+		</nav>
 	</div>
 </header>
 
@@ -66,9 +86,24 @@
 		text-decoration: none;
 	}
 
-	.tagline {
-		color: var(--ink-2);
+	.sections {
+		--cluster-gap: var(--space-5);
+
+		padding: 0;
+		list-style: none;
 		font-size: var(--text-sm);
+	}
+
+	.sections a {
+		color: var(--ink-2);
+		text-decoration: none;
+	}
+
+	.sections a[aria-current='page'] {
+		color: var(--ink);
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.35em;
 	}
 
 	main {

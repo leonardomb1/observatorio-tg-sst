@@ -3,6 +3,7 @@ import {
 	formatCompact,
 	formatDecimal,
 	formatInteger,
+	formatMonthYear,
 	formatPercent,
 	formatPointsDelta,
 	formatRatePer100k
@@ -39,5 +40,10 @@ describe('pt-BR number formatting', () => {
 
 	it('labels rates with their denominator', () => {
 		expect(formatRatePer100k(1045.5)).toBe('1.045,5 por 100 mil vínculos');
+	});
+
+	it('formats month and year the way statistical notes do', () => {
+		expect(formatMonthYear(2026, 8)).toBe('ago/2026');
+		expect(formatMonthYear(2023, 12)).toBe('dez/2023');
 	});
 });

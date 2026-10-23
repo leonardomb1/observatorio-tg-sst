@@ -1,0 +1,150 @@
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import Chart from '#lib/charts/Chart.svelte';
+	import { compareLines } from '#lib/charts/options.ts';
+	import KpiCard from '#lib/components/KpiCard.svelte';
+	import Panel from '#lib/components/Panel.svelte';
+	import { formatDecimal, formatInteger } from '#lib/format.ts';
+	import { catSource } from '#lib/sources.ts';
+	import { yearStatusLabel } from '#lib/status.ts';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+
+	const source = $derived(catSource(data.calendar.publishedUntil));
+	const year = $derived(data.calendar.lastConsolidated);
+	const current = $derived(data.rows.find((row) => row.year === year));
+	const national = $derived(data.brazil.find((row) => row.year === year));
+	const years = $derived(data.rows.map((row) => row.year));
+	const byYear = (rows: typeof data.brazil, pick: (row: (typeof rows)[number]) => number | null) =>
+		years.map((each) => {
+			const row = rows.find((candidate) => candidate.year === each);
+			return row?.status === 'consolidado' ? pick(row) : null;
+		});
+	const multiple = $derived(
+		current?.accidentRate && national?.accidentRate
+			? current.accidentRate / national.accidentRate
+			: null
+	);
+	const merged = $derived(
+		data.rows.map((row) => ({
+			...row,
+			brazilAccidentRate: data.brazil.find((each) => each.year === row.year)?.accidentRate ?? null
+		}))
+	);
+</script>
+
+<svelte:head>
+	<title>{data.uf}: acidentes de trabalho — Observatório SST</title>
+	<meta
+		name="description"
+		content="Taxa de acidentes e de óbitos de trabalho por 100 mil vínculos formais em {data.uf}, comparada ao Brasil."
+	/>
+</svelte:head>
+
+<div class="l-stack page">
+	<header class="l-stack">
+		<a href={resolve('/territorio')} class="back">← Estados</a>
+		<h1>{data.uf}</h1>
+		{#if multiple}
+			<p>
+				Em {year}, a taxa de acidentes de {data.uf} foi {formatDecimal(multiple, 2)} vez a do Brasil,
+				a {formatInteger(data.position)}ª maior entre {formatInteger(data.total)} unidades federativas.
+			</p>
+		{/if}
+	</header>
+
+	{#if current && national}
+		<section class="kpis" aria-label="Indicadores de {year}">
+			<KpiCard
+				label="Taxa de acidentes"
+				value={formatDecimal(current.accidentRate)}
+				unit="por 100 mil vínculos"
+				context="Brasil: {formatDecimal(national.accidentRate)}"
+			/>
+			<KpiCard
+				label="Taxa de óbitos"
+				value={formatDecimal(current.deathRate, 2)}
+				unit="por 100 mil vínculos"
+				context="Brasil: {formatDecimal(national.deathRate, 2)}"
+			/>
+			<KpiCard
+				label="Acidentes com CAT"
+				value={formatInteger(current.allAccidents)}
+				context={String(year)}
+			/>
+			<KpiCard label="Óbitos" value={formatInteger(current.allDeaths)} context={String(year)} />
+		</section>
+	{/if}
+
+	<Panel
+		title="Taxa de acidentes de {data.uf} e do Brasil"
+		subtitle="Acidentes com CAT por 100 mil vínculos formais, sem administração pública; só anos consolidados no gráfico"
+		status="consolidado"
+		period="anos fechados"
+		{source}
+		columns={[
+			{ key: 'year', label: 'Ano' },
+			{
+				key: 'accidentRate',
+				label: `${data.uf}: acidentes por 100 mil`,
+				numeric: true,
+				format: (cell) => formatDecimal(cell as number | null)
+			},
+			{
+				key: 'brazilAccidentRate',
+				label: 'Brasil: acidentes por 100 mil',
+				numeric: true,
+				format: (cell) => formatDecimal(cell as number | null)
+			},
+			{
+				key: 'deathRate',
+				label: `${data.uf}: óbitos por 100 mil`,
+				numeric: true,
+				format: (cell) => formatDecimal(cell as number | null, 2)
+			},
+			{ key: 'status', label: 'Situação', format: (cell) => yearStatusLabel[cell as 'consolidado'] }
+		]}
+		rows={merged}
+		slug="taxa-acidentes-{data.uf}"
+	>
+		{#snippet note()}
+			<p>
+				Anos parciais ou provisórios ficam fora do gráfico porque faltam arquivos mensais na fonte;
+				os valores estão na tabela, marcados.
+			</p>
+		{/snippet}
+		{#snippet chart()}
+			<Chart
+				label="Taxa de acidentes de {data.uf} comparada à do Brasil nos anos consolidados."
+				height="18rem"
+				option={(tokens) =>
+					compareLines(
+						tokens,
+						years,
+						{ label: data.uf, values: byYear(data.rows, (row) => row.accidentRate) },
+						{ label: 'Brasil', values: byYear(data.brazil, (row) => row.accidentRate) },
+						(value) => formatDecimal(value, 0)
+					)}
+			/>
+		{/snippet}
+	</Panel>
+</div>
+
+<style>
+	.page {
+		--stack-gap: var(--space-6);
+	}
+
+	.back {
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+	}
+
+	.kpis {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+		grid-template-rows: repeat(3, auto);
+		gap: var(--space-1) var(--space-5);
+	}
+</style>
