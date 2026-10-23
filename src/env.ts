@@ -1,6 +1,8 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
 import * as z from 'zod';
 
+const optional = (value: string | undefined) => (value === '' ? undefined : value);
+
 export const variables = defineEnvVars({
 	DATABASE_URL: {
 		description: 'Postgres connection string for the app database (pgvector).',
@@ -26,5 +28,30 @@ export const variables = defineEnvVars({
 	STARROCKS_QUERY_TIMEOUT_S: {
 		description: 'Per-query timeout applied to every StarRocks session, in seconds.',
 		schema: z.string().default('30').transform(Number).pipe(z.number().int().positive())
+	},
+	VOYAGE_API_KEY: {
+		description: 'Voyage AI key for embeddings and reranking. Without it search is lexical only.',
+		schema: optional
+	},
+	RERANK_MODEL: {
+		description: 'Voyage reranker model.',
+		schema: z.string().default('rerank-2.5')
+	},
+	PUBLIC_ORIGIN: {
+		description: 'Public origin of the site, used for the OIDC redirect URI behind the proxy.',
+		schema: optional
+	},
+	OIDC_ISSUER: {
+		description: 'Authentik issuer URL of the observatory provider.',
+		schema: optional
+	},
+	OIDC_CLIENT_ID: { description: 'OIDC client id.', schema: optional },
+	OIDC_CLIENT_SECRET: {
+		description: 'OIDC client secret (confidential client).',
+		schema: optional
+	},
+	ADMIN_GROUP: {
+		description: 'Authentik group whose members may use /admin.',
+		schema: z.string().default('Observatório Admins')
 	}
 });

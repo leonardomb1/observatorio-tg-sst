@@ -1,8 +1,4 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema.ts';
 import { DATABASE_URL } from '$app/env/private';
+import { createDb } from './client.ts';
 
-const client = postgres(DATABASE_URL, { max: 10 });
-
-export const db = drizzle(client, { schema });
+export const db = createDb(DATABASE_URL);

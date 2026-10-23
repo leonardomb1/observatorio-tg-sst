@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "vite build && bun run build:worker",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -19,7 +19,9 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"knip": "knip"
+		"knip": "knip",
+		"build:worker": "bun build src/worker/main.ts --target node --packages external --outfile build-worker/main.js",
+		"worker": "bun src/worker/main.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "10.0.1",
@@ -30,7 +32,6 @@
 		"@types/node": "^24",
 		"@vitest/browser-playwright": "^4.1.8",
 		"drizzle-kit": "^0.31.10",
-		"drizzle-orm": "^0.45.2",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
@@ -38,7 +39,6 @@
 		"knip": "6.42.1",
 		"playwright": "^1.60.0",
 		"postcss-html": "2.0.0",
-		"postgres": "^3.4.9",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"stylelint": "17.16.0",
@@ -56,8 +56,11 @@
 	"dependencies": {
 		"@fontsource-variable/source-sans-3": "5.3.1",
 		"@fontsource-variable/source-serif-4": "5.3.1",
+		"drizzle-orm": "^0.45.2",
 		"echarts": "6.1.0",
 		"mysql2": "3.24.6",
+		"postgres": "^3.4.9",
+		"unpdf": "1.9.1",
 		"zod": "4.6.7"
 	}
 }

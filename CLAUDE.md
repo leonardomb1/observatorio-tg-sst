@@ -8,7 +8,14 @@ SvelteKit 3 (adapter-node) · Svelte 5 runes · TypeScript 6 strict · bun for i
 
 ## Commands
 
-`bun run dev` · `bun run check` · `bun run lint` · `bun run knip` · `bun run test:unit` · `bun run test:e2e` · `bun run build` then `node build`
+`bun run dev` · `bun run worker` · `bun run check` · `bun run lint` · `bun run knip` · `bun run test:unit` · `bun run test:e2e` · `bun run build` then `node build`
+
+## Processes
+
+- Web app (`node build`) and ingestion worker (`node build-worker/main.js`, source `src/worker/main.ts`) run from the same image. The worker applies Drizzle migrations at start, claims `ingest_jobs` with `SKIP LOCKED`, and wakes on `NOTIFY ingest_jobs`.
+- Code shared with the worker (`src/lib/server/db/client.ts`, `src/lib/server/rag/*` except `context.ts`) must not import `$app/*`.
+- RAG: Voyage `voyage-4@1024` with `input_type`, hybrid search (vector + Portuguese FTS + exact NR item code, RRF, Voyage rerank). NR texts come from the official PDFs uploaded in `/admin`, parsed per item by `rag/nr.ts`.
+- `/admin` is gated by Authentik OIDC (group `ADMIN_GROUP`); its cookies are scoped to `/admin` so public pages stay cacheable.
 
 ## House rules
 

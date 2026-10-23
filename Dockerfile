@@ -13,10 +13,15 @@ RUN DATABASE_URL=postgres://build@localhost/build \
 	bun run build
 
 FROM node:24-slim
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-por poppler-utils \
+	&& rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
+COPY --from=build /app/build-worker ./build-worker
+COPY drizzle ./drizzle
 COPY package.json ./
 USER node
 EXPOSE 3000
