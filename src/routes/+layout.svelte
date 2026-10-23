@@ -7,6 +7,7 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { AUTHOR, CONTACT_EMAIL } from '#lib/contact.ts';
+	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import { setToaster, Toaster } from '#lib/components/toast.svelte.ts';
 	import type { LayoutProps } from './$types';
@@ -15,12 +16,12 @@
 
 	setToaster(new Toaster());
 
-	const sections = [
-		{ id: '', label: 'Visão geral' },
-		{ id: 'estados', label: 'Estados' },
-		{ id: 'atividades', label: 'Atividades' },
-		{ id: 'como-acontece', label: 'Como acontece' },
-		{ id: 'beneficios', label: 'Benefícios' }
+	const sections: { id: string; label: string; icon: IconName }[] = [
+		{ id: '', label: 'Visão geral', icon: 'chart' },
+		{ id: 'estados', label: 'Estados', icon: 'map' },
+		{ id: 'atividades', label: 'Atividades', icon: 'factory' },
+		{ id: 'como-acontece', label: 'Como acontece', icon: 'triangle-alert' },
+		{ id: 'beneficios', label: 'Benefícios', icon: 'wallet' }
 	];
 
 	const home = resolve('/(historia)');
@@ -80,7 +81,7 @@
 					<li>
 						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- built from the resolved home path -->
 						<a href={href(section.id)} aria-current={current(section.id)} data-target={section.id}
-							>{section.label}</a
+							><Icon name={section.icon} />{section.label}</a
 						>
 					</li>
 				{/each}
@@ -89,7 +90,8 @@
 		<a
 			class="ask"
 			href={resolve('/consulta')}
-			aria-current={page.route.id?.startsWith('/consulta') ? 'page' : undefined}>Consulta</a
+			aria-current={page.route.id?.startsWith('/consulta') ? 'page' : undefined}
+			><Icon name="message-circle" />Consulta</a
 		>
 	</div>
 </header>
@@ -182,7 +184,9 @@
 	}
 
 	.sections a {
-		display: inline-block;
+		display: inline-flex;
+		gap: var(--space-2);
+		align-items: center;
 		padding-block: var(--space-1);
 		color: var(--ink-2);
 		text-decoration: underline;
@@ -207,6 +211,9 @@
 	}
 
 	.ask {
+		display: inline-flex;
+		gap: var(--space-2);
+		align-items: center;
 		padding: var(--space-1) var(--space-3);
 		border: 1px solid var(--rule-strong);
 		border-radius: var(--radius);

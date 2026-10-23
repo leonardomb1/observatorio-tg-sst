@@ -39,14 +39,9 @@
 	const minimumJobs = $derived(sectors[0]?.minimumJobs ?? null);
 </script>
 
-<StorySection id="atividades" kicker="Atividades" title="Em que trabalho o risco se concentra">
+<StorySection id="atividades" icon="factory" title="Em que trabalho o risco se concentra">
 	{#snippet lede()}
 		<p>
-			Taxas por classe CNAE de quatro dígitos.
-			{#if minimumJobs !== null}
-				Só entram classes com pelo menos {formatCompact(minimumJobs)} vínculos, para que um único óbito
-				não desloque a taxa.
-			{/if}
 			{#if lead && times}
 				{inYear(filters.year, filters.status)}, a taxa de {measure} de {lead.row.name.toLocaleLowerCase(
 					'pt-BR'
@@ -101,6 +96,13 @@
 		slug="taxa-{filters.metric}-cnae-{filters.year}"
 	>
 		{#snippet note()}
+			<p>
+				Taxas por classe CNAE de quatro dígitos.
+				{#if minimumJobs !== null}
+					Só entram classes com pelo menos {formatCompact(minimumJobs)} vínculos, para que um único óbito
+					não desloque a taxa.
+				{/if}
+			</p>
 			<p>
 				A tabela traz todas as {formatInteger(sectors.length)} classes acima da base mínima; o gráfico
 				mostra as {top.length} maiores.

@@ -60,15 +60,11 @@
 
 	<Atividades calendar={data.calendar} filters={data.filters} sectors={data.sectors} />
 
-	<StorySection
-		id="como-acontece"
-		kicker="Como acontece"
-		title="O que causa os acidentes que matam"
-	>
+	<StorySection id="como-acontece" icon="triangle-alert" title="O que causa os acidentes que matam">
 		{#snippet lede()}
 			<p>
-				A CAT registra o agente que causou o acidente, a parte do corpo atingida e a natureza da
-				lesão. Os números são do último ano consolidado, {data.overview.year}.
+				Agente causador, parte do corpo e lesão nos óbitos de {data.overview.year}, o último ano
+				consolidado.
 			</p>
 		{/snippet}
 		{#await data.causes}
@@ -80,12 +76,11 @@
 		{/await}
 	</StorySection>
 
-	<StorySection id="beneficios" kicker="Benefícios" title="O que o INSS paga depois do acidente">
+	<StorySection id="beneficios" icon="wallet" title="O que o INSS paga depois do acidente">
 		{#snippet lede()}
 			<p>
-				Quando o acidente afasta o trabalhador por mais de 15 dias, deixa sequela ou mata, o INSS
-				concede um benefício acidentário. As concessões vêm de outra base do INSS, com calendário
-				próprio de publicação.
+				Benefícios que o INSS concede quando o acidente afasta por mais de 15 dias, deixa sequela ou
+				mata.
 			</p>
 		{/snippet}
 		{#await data.benefits}

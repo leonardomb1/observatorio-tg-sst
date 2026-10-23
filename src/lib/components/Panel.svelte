@@ -3,6 +3,7 @@
 	import { toCsv, type Column } from '#lib/csv.ts';
 	import type { YearStatus } from '#lib/status.ts';
 	import DataTable from './DataTable.svelte';
+	import Icon from './Icon.svelte';
 	import InfoNote from './InfoNote.svelte';
 	import StatusBadge from './StatusBadge.svelte';
 
@@ -50,29 +51,39 @@
 	<header class="head">
 		<div class="titles">
 			<h3 id="{id}-title">{title}</h3>
-			<div class="subtitle">
+			<p class="subtitle">
 				{subtitle}
-				{#if note}<InfoNote label="Sobre este indicador">{@render note()}</InfoNote>{/if}
-			</div>
+				{#if status && status !== 'consolidado'}<StatusBadge {status} {period} />{/if}
+			</p>
 		</div>
-		{#if status}<StatusBadge {status} {period} />{/if}
+		<div class="tools">
+			<div class="views" role="group" aria-label="Forma de exibição">
+				<button
+					type="button"
+					aria-pressed={view === 'chart'}
+					aria-label="Ver gráfico"
+					onclick={() => (view = 'chart')}><Icon name="chart" /></button
+				>
+				<button
+					type="button"
+					aria-pressed={view === 'table'}
+					aria-label="Ver tabela"
+					onclick={() => (view = 'table')}><Icon name="table" /></button
+				>
+			</div>
+			<button type="button" class="tool" aria-label="Baixar dados em CSV" onclick={downloadCsv}
+				><Icon name="download" /></button
+			>
+			{#if note}<InfoNote label="Sobre este indicador">{@render note()}</InfoNote>{/if}
+		</div>
 	</header>
-
-	<div class="views" role="group" aria-label="Forma de exibição">
-		<button type="button" aria-pressed={view === 'chart'} onclick={() => (view = 'chart')}
-			>Gráfico</button
-		>
-		<button type="button" aria-pressed={view === 'table'} onclick={() => (view = 'table')}
-			>Tabela</button
-		>
-	</div>
 
 	<div>
 		{#if view === 'chart'}
 			<svelte:boundary>
 				{@render chart()}
 				{#snippet failed()}
-					<p class="error">Não foi possível desenhar o gráfico. Os dados estão na aba Tabela.</p>
+					<p class="error">Não foi possível desenhar o gráfico. Os dados estão na tabela.</p>
 				{/snippet}
 			</svelte:boundary>
 		{:else}
@@ -81,10 +92,7 @@
 	</div>
 
 	<footer class="foot">
-		<span>
-			Fonte: <a href={source.href} rel="external">{source.name}</a>. Atualizado em {source.updatedAt}.
-		</span>
-		<button type="button" class="download" onclick={downloadCsv}>Baixar CSV</button>
+		<a href={source.href} rel="external">{source.name}</a>, {source.updatedAt}
 	</footer>
 </section>
 
@@ -92,47 +100,67 @@
 	.panel {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
+		gap: var(--space-4);
 		padding-block: var(--space-4);
 		border-block-start: 1px solid var(--ink);
 	}
 
 	.head {
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2) var(--space-4);
-		align-items: baseline;
+		gap: var(--space-3) var(--space-4);
+		align-items: flex-start;
 		justify-content: space-between;
 	}
 
 	h3 {
 		font-size: var(--text-lg);
+		line-height: var(--leading-tight);
 	}
 
 	.subtitle {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		align-items: baseline;
 		margin-block-start: var(--space-1);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 	}
 
-	.views {
+	.tools {
 		display: flex;
-		gap: var(--space-4);
-		border-block-end: var(--border);
+		flex: none;
+		gap: var(--space-1);
+		align-items: center;
 	}
 
-	.views button {
-		padding: var(--space-1) 0;
+	.views {
+		display: flex;
+		padding: 2px;
+		border: var(--border);
+		border-radius: var(--radius);
+	}
+
+	.views button,
+	.tool {
+		display: grid;
+		place-items: center;
+		inline-size: 2rem;
+		block-size: 2rem;
+		padding: 0;
 		border: 0;
-		border-block-end: 2px solid transparent;
-		margin-block-end: -1px;
+		border-radius: var(--radius);
 		background: none;
 		color: var(--ink-2);
-		font-size: var(--text-sm);
+	}
+
+	.views button:hover,
+	.tool:hover {
+		color: var(--ink);
 	}
 
 	.views button[aria-pressed='true'] {
-		border-block-end-color: var(--ink);
+		background: var(--surface);
 		color: var(--ink);
 	}
 
@@ -141,22 +169,12 @@
 		color: var(--ink-2);
 	}
 
-	.download {
-		padding: 0;
-		border: 0;
-		background: none;
-		color: inherit;
-		text-decoration: underline;
-		text-decoration-thickness: 1px;
-		text-underline-offset: 0.18em;
+	.foot {
+		color: var(--ink-3);
+		font-size: var(--text-xs);
 	}
 
-	.foot {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2) var(--space-4);
-		justify-content: space-between;
+	.foot a {
 		color: var(--ink-2);
-		font-size: var(--text-xs);
 	}
 </style>

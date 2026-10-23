@@ -1,24 +1,24 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { reveal } from '#lib/viewport.ts';
+	import Icon, { type IconName } from './Icon.svelte';
 
 	interface Props {
 		/** Anchor of the section; it is also what the header scroll-spy reports. */
 		id: string;
-		/** Short name shown above the title, matching the header link. */
-		kicker: string;
+		/** Same icon as the section's link in the header. */
+		icon: IconName;
 		title: string;
 		lede?: Snippet;
 		children: Snippet;
 	}
 
-	let { id, kicker, title, lede, children }: Props = $props();
+	let { id, icon, title, lede, children }: Props = $props();
 </script>
 
 <section {id} data-section={id} class="l-stack story-section" aria-labelledby="{id}-title">
 	<header class="l-stack intro" {@attach reveal}>
-		<p class="kicker">{kicker}</p>
-		<h2 id="{id}-title">{title}</h2>
+		<h2 id="{id}-title"><span class="mark"><Icon name={icon} /></span>{title}</h2>
 		{@render lede?.()}
 	</header>
 	<div class="body" {@attach reveal}>
@@ -37,12 +37,27 @@
 		--stack-gap: var(--space-3);
 	}
 
-	.kicker {
+	h2 {
+		display: flex;
+		gap: var(--space-3);
+		align-items: center;
+	}
+
+	.mark {
+		display: grid;
+		flex: none;
+		place-items: center;
+		inline-size: 2.25rem;
+		block-size: 2.25rem;
+		border: var(--border);
+		border-radius: var(--radius);
 		color: var(--ink-2);
-		font-size: var(--text-sm);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
+		font-size: var(--text-base);
+	}
+
+	.intro :global(p) {
+		max-inline-size: var(--measure);
+		color: var(--ink-2);
 	}
 
 	.body {

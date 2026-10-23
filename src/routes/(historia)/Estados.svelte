@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import Chart from '#lib/charts/Chart.svelte';
 	import { rankingBars } from '#lib/charts/options.ts';
+	import Icon from '#lib/components/Icon.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import StorySection from '#lib/components/StorySection.svelte';
+	import TileMap from '#lib/components/TileMap.svelte';
 	import { formatDecimal, formatInteger } from '#lib/format.ts';
 	import { leader, listNames, timesAbove } from '#lib/findings.ts';
 	import { catSource } from '#lib/sources.ts';
@@ -35,15 +36,13 @@
 	const times = $derived(
 		lead && !lead.tied.length && national ? timesAbove((value(lead.row) ?? 0) / national) : null
 	);
-	const byName = $derived(ufs.toSorted((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+	const TOP = 10;
+	let all = $state(false);
 </script>
 
-<StorySection id="estados" kicker="Estados" title="Onde o risco é maior">
+<StorySection id="estados" icon="map" title="Onde o risco é maior">
 	{#snippet lede()}
 		<p>
-			O estado com mais acidentes não é necessariamente o de maior risco: a taxa divide os acidentes
-			pelo emprego formal. Os acidentes são atribuídos ao município do empregador, como no anuário
-			oficial.
 			{#if lead && above !== null}
 				{inYear(filters.year, filters.status)},
 				{#if times}{lead.row.name} teve {times} a taxa de {measure} do Brasil, e{/if}
@@ -106,6 +105,11 @@
 	>
 		{#snippet note()}
 			<p>
+				O estado com mais acidentes não é necessariamente o de maior risco: a taxa divide os
+				acidentes pelo emprego formal. Os acidentes são atribuídos ao município do empregador, como
+				no anuário oficial.
+			</p>
+			<p>
 				Denominador: vínculos formais da RAIS em 31/12, sem a divisão 84 da CNAE (administração
 				pública). Acidentes de empregadores dessa divisão também ficam fora do numerador.
 			</p>
@@ -117,45 +121,71 @@
 			{/if}
 		{/snippet}
 		{#snippet chart()}
-			<Chart
-				label="Taxa de {measure} por estado em {filters.year}, em ordem decrescente."
-				height="40rem"
-				option={(tokens) =>
-					rankingBars(
-						tokens,
-						sorted.map((row) => ({ label: row.name, value: value(row) })),
-						format,
-						national === null ? undefined : { value: national, label: 'Brasil' }
-					)}
-			/>
+			<div class="split">
+				<TileMap
+					tiles={ufs.map((row) => ({ uf: row.uf, name: row.name, value: value(row) }))}
+					{format}
+					unit="{measure} por 100 mil vínculos"
+					reference={national}
+				/>
+				<div class="ranking">
+					<Chart
+						label="Taxa de {measure} por estado em {filters.year}, em ordem decrescente."
+						height="{(all ? sorted.length : TOP) * 1.6 + 2}rem"
+						option={(tokens) =>
+							rankingBars(
+								tokens,
+								(all ? sorted : sorted.slice(0, TOP)).map((row) => ({
+									label: row.name,
+									value: value(row)
+								})),
+								format,
+								national === null ? undefined : { value: national, label: 'Brasil' }
+							)}
+					/>
+					<button type="button" class="more" aria-expanded={all} onclick={() => (all = !all)}>
+						<Icon name="chevron-down" />{all
+							? 'Mostrar só os 10 maiores'
+							: `Ver os ${formatInteger(sorted.length)} estados`}
+					</button>
+				</div>
+			</div>
 		{/snippet}
 	</Panel>
-
-	<nav aria-labelledby="estados-lista" class="l-stack uf-nav">
-		<h3 id="estados-lista">A série de cada estado</h3>
-		<ul class="ufs">
-			{#each byName as uf (uf.uf)}
-				<li><a href={resolve('/territorio/[uf]', { uf: uf.uf.toLowerCase() })}>{uf.name}</a></li>
-			{/each}
-		</ul>
-	</nav>
 </StorySection>
 
 <style>
-	.uf-nav {
-		--stack-gap: var(--space-3);
-	}
-
-	h3 {
-		font-size: var(--text-lg);
-	}
-
-	.ufs {
+	.split {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-		gap: var(--space-2) var(--space-4);
-		padding: 0;
-		list-style: none;
+		grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+		gap: var(--space-6);
+		align-items: start;
+	}
+
+	.ranking {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.more {
+		display: inline-flex;
+		gap: var(--space-2);
+		align-items: center;
+		align-self: flex-start;
+		padding: var(--space-1) var(--space-2);
+		border: 0;
+		background: none;
+		color: var(--ink-2);
+		font: inherit;
 		font-size: var(--text-sm);
+	}
+
+	.more:hover {
+		color: var(--ink);
+	}
+
+	.more[aria-expanded='true'] :global(svg) {
+		rotate: 180deg;
 	}
 </style>

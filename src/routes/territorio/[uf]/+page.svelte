@@ -58,6 +58,7 @@
 		<section class="kpis" aria-label="Indicadores de {year}">
 			<KpiCard
 				label="Taxa de acidentes"
+				icon="activity"
 				value={current.accidentRate}
 				format={(value) => formatDecimal(value)}
 				unit="por 100 mil vínculos"
@@ -65,6 +66,7 @@
 			/>
 			<KpiCard
 				label="Taxa de óbitos"
+				icon="heart-pulse"
 				value={current.deathRate}
 				format={(value) => formatDecimal(value, 2)}
 				unit="por 100 mil vínculos"
@@ -72,12 +74,14 @@
 			/>
 			<KpiCard
 				label="Acidentes com CAT"
+				icon="file"
 				value={current.allAccidents}
 				format={formatInteger}
 				context={String(year)}
 			/>
 			<KpiCard
 				label="Óbitos"
+				icon="user"
 				value={current.allDeaths}
 				format={formatInteger}
 				context={String(year)}

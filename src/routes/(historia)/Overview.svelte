@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Chart from '#lib/charts/Chart.svelte';
 	import { rankingBars, yearBars } from '#lib/charts/options.ts';
+	import Icon from '#lib/components/Icon.svelte';
 	import KpiCard from '#lib/components/KpiCard.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { formatDecimal, formatInteger, formatMonthYear } from '#lib/format.ts';
@@ -56,18 +57,23 @@
 <section data-section="" class="l-stack overview" aria-labelledby="visao-geral-title">
 	<header class="l-stack intro">
 		<h1 id="visao-geral-title">Acidentes de trabalho no Brasil</h1>
-		<p class="lede">
-			Acidentes comunicados ao INSS por meio da CAT, divididos pelo emprego formal da RAIS. As taxas
-			excluem a administração pública, cujos servidores estatutários não emitem CAT. Dados
-			publicados até {formatMonthYear(calendar.publishedUntil.year, calendar.publishedUntil.month)};
-			o último ano consolidado é {year}.
-		</p>
+		<p class="lede">Acidentes comunicados ao INSS e emprego formal da RAIS, em dados públicos.</p>
+		<ul class="tags">
+			<li>
+				<Icon name="database" />Dados até {formatMonthYear(
+					calendar.publishedUntil.year,
+					calendar.publishedUntil.month
+				)}
+			</li>
+			<li><Icon name="check" />Último ano consolidado: {year}</li>
+		</ul>
 	</header>
 
 	{#if brazil}
 		<div class="kpis" role="group" aria-label="Indicadores de {year}">
 			<KpiCard
 				label="Taxa de acidentes"
+				icon="activity"
 				value={brazil.accidentRate}
 				format={(value) => formatDecimal(value)}
 				unit="por 100 mil vínculos"
@@ -75,6 +81,7 @@
 			/>
 			<KpiCard
 				label="Taxa de óbitos"
+				icon="heart-pulse"
 				value={brazil.deathRate}
 				format={(value) => formatDecimal(value, 2)}
 				unit="por 100 mil vínculos"
@@ -82,15 +89,17 @@
 			/>
 			<KpiCard
 				label="Acidentes com CAT"
+				icon="file"
 				value={brazil.allAccidents}
 				format={formatInteger}
-				context="{year}, com município do empregador identificado"
+				context={String(year)}
 			/>
 			<KpiCard
 				label="Óbitos"
+				icon="user"
 				value={brazil.allDeaths}
 				format={formatInteger}
-				context="{year}, registrados na CAT"
+				context={String(year)}
 			/>
 		</div>
 	{/if}
@@ -222,7 +231,27 @@
 	}
 
 	.lede {
+		color: var(--ink-2);
 		font-size: var(--text-lg);
+	}
+
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		padding: 0;
+		list-style: none;
+	}
+
+	.tags li {
+		display: inline-flex;
+		gap: var(--space-2);
+		align-items: center;
+		padding: var(--space-1) var(--space-3);
+		border: var(--border);
+		border-radius: var(--radius);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
 	}
 
 	.kpis {

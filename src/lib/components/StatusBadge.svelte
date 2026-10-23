@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	import { yearStatusHint, yearStatusLabel, type YearStatus } from '#lib/status.ts';
 
 	interface Props {
@@ -10,36 +11,23 @@
 </script>
 
 <span class="badge" data-status={status}>
-	{#if period}<span class="period">{period}</span>{/if}
-	<span class="label">{yearStatusLabel[status]}</span>
+	<Icon name="triangle-alert" size={1} />
+	<span class="label"
+		>{period ? `${period}: ` : ''}{yearStatusLabel[status].toLocaleLowerCase('pt-BR')}</span
+	>
 	<span class="visually-hidden">: {yearStatusHint[status]}</span>
 </span>
 
 <style>
 	.badge {
 		display: inline-flex;
-		gap: var(--space-2);
-		align-items: baseline;
-		font-size: var(--text-xs);
-		color: var(--ink-2);
-		white-space: nowrap;
-	}
-
-	.label {
-		padding-inline: var(--space-1);
-		border: 1px solid currentcolor;
+		gap: var(--space-1);
+		align-items: center;
+		padding: 0 var(--space-2);
+		border: 1px dashed var(--ink-3);
 		border-radius: var(--radius);
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-
-	[data-status='consolidado'] .label {
-		border-color: transparent;
-		padding-inline: 0;
-	}
-
-	[data-status='parcial'] .label {
-		border-style: dashed;
 		color: var(--ink);
+		font-size: var(--text-xs);
+		white-space: nowrap;
 	}
 </style>

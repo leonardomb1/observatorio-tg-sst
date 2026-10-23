@@ -2,9 +2,11 @@
 	import type { Attachment } from 'svelte/attachments';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { onceInView } from '#lib/viewport.ts';
+	import Icon, { type IconName } from './Icon.svelte';
 
 	interface Props {
 		label: string;
+		icon: IconName;
 		value: number | null;
 		/** Formats both the final value and every intermediate frame of the count-up. */
 		format: (value: number) => string;
@@ -12,7 +14,7 @@
 		context: string;
 	}
 
-	let { label, value, format, unit, context }: Props = $props();
+	let { label, icon, value, format, unit, context }: Props = $props();
 
 	const DURATION_MS = 1100;
 
@@ -49,7 +51,7 @@
 </script>
 
 <div class="kpi">
-	<p class="label">{label}</p>
+	<p class="label"><Icon name={icon} />{label}</p>
 	<p class="value" {@attach countUp}>
 		{#if frame === null}
 			{text}
@@ -69,6 +71,12 @@
 		gap: var(--space-1);
 		padding-block-start: var(--space-3);
 		border-block-start: 1px solid var(--ink);
+	}
+
+	.label {
+		display: flex;
+		gap: var(--space-2);
+		align-items: center;
 	}
 
 	.label,
