@@ -1,0 +1,100 @@
+@layer base {
+	html {
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: 100%;
+		line-height: var(--leading);
+		scrollbar-color: var(--rule-strong) var(--paper);
+	}
+
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-serif);
+		font-weight: 600;
+		line-height: var(--leading-tight);
+		text-wrap: balance;
+	}
+
+	h1 {
+		font-size: var(--text-3xl);
+	}
+
+	h2 {
+		font-size: var(--text-2xl);
+	}
+
+	h3 {
+		font-size: var(--text-xl);
+	}
+
+	p {
+		max-inline-size: var(--measure);
+		text-wrap: pretty;
+	}
+
+	a {
+		color: inherit;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.18em;
+	}
+
+	a:hover {
+		text-decoration-thickness: 2px;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+
+	::selection {
+		background: var(--accent);
+		color: var(--ink);
+	}
+
+	small,
+	figcaption {
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+	}
+
+	table {
+		inline-size: 100%;
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
+	}
+
+	th,
+	td {
+		padding: var(--space-2) var(--space-3);
+		border-block-end: var(--border);
+		text-align: start;
+		vertical-align: top;
+	}
+
+	th {
+		font-weight: 600;
+		color: var(--ink-2);
+	}
+
+	td[data-numeric],
+	th[data-numeric] {
+		text-align: end;
+	}
+
+	hr {
+		border: 0;
+		border-block-start: var(--border);
+	}
+
+	.visually-hidden {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}

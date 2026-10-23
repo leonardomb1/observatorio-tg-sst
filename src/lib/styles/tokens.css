@@ -1,0 +1,107 @@
+@layer tokens {
+	:root {
+		color-scheme: light;
+
+		--paper: #faf8f4;
+		--surface: #fff;
+		--rule: #dedbd4;
+		--rule-strong: #b8b4ab;
+		--ink: #1a1a18;
+		--ink-2: #5a5751;
+		--ink-3: #8c8880;
+		--accent: #e8590c;
+		--focus: #e8590c;
+
+		--rate-1: #fef0d9;
+		--rate-2: #fdcc8a;
+		--rate-3: #fc8d59;
+		--rate-4: #e34a33;
+		--rate-5: #b30000;
+		--below: #2b6c8f;
+		--above: #c4422b;
+		--neutral: #ece9e3;
+		--death: #8e1b1b;
+		--type-typical: #0072b2;
+		--type-commute: #009e73;
+		--type-disease: #b8508f;
+		--type-unknown: #8c8880;
+
+		--font-serif: 'Source Serif 4 Variable', georgia, serif;
+		--font-sans: 'Source Sans 3 Variable', system-ui, sans-serif;
+
+		--text-xs: 0.8125rem;
+		--text-sm: 0.875rem;
+		--text-base: 1rem;
+		--text-lg: 1.2rem;
+		--text-xl: 1.44rem;
+		--text-2xl: 1.728rem;
+		--text-3xl: 2.0736rem;
+		--leading: 1.55;
+		--leading-tight: 1.2;
+
+		--space-1: 0.25rem;
+		--space-2: 0.5rem;
+		--space-3: 0.75rem;
+		--space-4: 1rem;
+		--space-5: 1.5rem;
+		--space-6: 2rem;
+		--space-7: 3rem;
+		--space-8: 4rem;
+
+		--radius: 2px;
+		--border: 1px solid var(--rule);
+		--measure: 68ch;
+		--page-max: 75rem;
+		--gutter: clamp(1rem, 4vw, 2rem);
+	}
+
+	:root[data-theme='dark'] {
+		color-scheme: dark;
+
+		--paper: #141413;
+		--surface: #1c1c1a;
+		--rule: #34332f;
+		--rule-strong: #54524c;
+		--ink: #edeae4;
+		--ink-2: #a9a59d;
+		--ink-3: #77736c;
+		--accent: #ff7a33;
+		--focus: #ff7a33;
+		--neutral: #2a2926;
+		--type-unknown: #6f6b64;
+		--rate-1: #4a2f22;
+		--rate-2: #8a3b22;
+		--rate-3: #c4502a;
+		--rate-4: #f07a3c;
+		--rate-5: #ffb38a;
+		--below: #4f9bc4;
+		--above: #f07a3c;
+		--death: #ff6b6b;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme='light']) {
+			color-scheme: dark;
+
+			--paper: #141413;
+			--surface: #1c1c1a;
+			--rule: #34332f;
+			--rule-strong: #54524c;
+			--ink: #edeae4;
+			--ink-2: #a9a59d;
+			--ink-3: #77736c;
+			--accent: #ff7a33;
+			--focus: #ff7a33;
+			--neutral: #2a2926;
+			--type-unknown: #6f6b64;
+			--rate-1: #4a2f22;
+			--rate-2: #8a3b22;
+			--rate-3: #c4502a;
+			--rate-4: #f07a3c;
+			--rate-5: #ffb38a;
+			--below: #4f9bc4;
+			--above: #f07a3c;
+			--death: #ff6b6b;
+		}
+	}
+}
