@@ -1,7 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import * as z from 'zod';
 import { db } from '#lib/server/db/index.ts';
-import { COLLECTIONS, listDocuments, slugify, uploadDocument } from '#lib/server/rag/documents.ts';
+import {
+	COLLECTIONS,
+	fetchOfficialPdf,
+	listDocuments,
+	slugify,
+	uploadDocument
+} from '#lib/server/rag/documents.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => ({ documents: await listDocuments(db) });
@@ -20,6 +26,11 @@ const UploadForm = z.object({
 		.url()
 		.optional()
 		.or(z.literal('').transform(() => undefined))
+});
+
+const ImportForm = z.object({
+	url: z.url('Informe o endereço do PDF.'),
+	nr: z.coerce.number().int().min(1, 'Informe o número da NR.').max(40)
 });
 
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -58,6 +69,35 @@ export const actions: Actions = {
 				error: `Este arquivo já é a versão ${outcome.version} do documento.`,
 				documentId: outcome.documentId
 			});
+		}
+		redirect(303, `/admin/documentos/${outcome.documentId}`);
+	},
+	importar: async ({ request, locals }) => {
+		const form = Object.fromEntries(await request.formData());
+		const parsed = ImportForm.safeParse(form);
+		if (!parsed.success) {
+			return fail(400, { importError: parsed.error.issues[0]?.message ?? 'Formulário inválido.' });
+		}
+		const { url, nr } = parsed.data;
+		let outcome;
+		try {
+			const file = await fetchOfficialPdf(url);
+			outcome = await uploadDocument(db, {
+				title: `NR-${nr}`,
+				slug: `nr-${nr}`,
+				collection: 'normas',
+				citable: true,
+				nr,
+				sourceUrl: url,
+				filename: file.filename,
+				bytes: file.bytes,
+				createdBy: locals.admin?.username ?? 'desconhecido'
+			});
+		} catch (error) {
+			return fail(400, { importError: error instanceof Error ? error.message : String(error) });
+		}
+		if (outcome.kind === 'duplicate') {
+			return fail(409, { importError: `Este PDF já é a versão ${outcome.version} da NR-${nr}.` });
 		}
 		redirect(303, `/admin/documentos/${outcome.documentId}`);
 	}

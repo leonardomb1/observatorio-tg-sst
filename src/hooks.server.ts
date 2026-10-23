@@ -12,7 +12,7 @@ const securityHeaders = {
 };
 
 const isAdmin = (path: string) => path === '/admin' || path.startsWith('/admin/');
-const isLogin = (path: string) => path.startsWith('/admin/entrar');
+const isLogin = (path: string) => path === '/admin/entrar' || path.startsWith('/admin/entrar/');
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;

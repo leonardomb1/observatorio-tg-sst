@@ -37,14 +37,19 @@ async function setStatus(
 function chunkText(
 	document: typeof documents.$inferSelect,
 	pages: { number: number | null; text: string }[]
-): { chunks: Chunk[]; chunker: string } {
+): { chunks: Chunk[]; chunker: string; title: string } {
 	if (document.kind === 'nr') {
 		const text = pages.map((page) => page.text).join('\n');
 		const nr = Number(document.meta.nr) || detectNrNumber(text);
 		if (!nr) throw new Error('Não foi possível identificar o número da NR no texto.');
-		return { chunks: parseNr(nr, text).chunks, chunker: 'nr-item@1' };
+		const parsed = parseNr(nr, text);
+		return { chunks: parsed.chunks, chunker: 'nr-item@1', title: `NR-${nr} – ${parsed.title}` };
 	}
-	return { chunks: chunkProse(document.title, pages), chunker: 'prose-heading@1' };
+	return {
+		chunks: chunkProse(document.title, pages),
+		chunker: 'prose-heading@1',
+		title: document.title
+	};
 }
 
 /** Embeds every chunk of a version that has no vector for the active model, reusing equal content. */
@@ -126,11 +131,15 @@ async function ingestVersion(ctx: IngestContext, job: Job): Promise<number> {
 
 	await setStatus(db, documentId, versionId, 'extracting');
 	await report(db, job.id, 'extract');
-	const extraction = await extract(new Uint8Array(row.bytes), row.version.mimeType ?? 'text/plain');
+	const extraction = await extract(
+		new Uint8Array(row.bytes),
+		row.version.mimeType ?? 'text/plain',
+		(done, total) => report(db, job.id, 'ocr', done, total)
+	);
 
 	await setStatus(db, documentId, versionId, 'chunking');
 	await report(db, job.id, 'chunk');
-	const { chunks: parsed, chunker } = chunkText(row.document, extraction.pages);
+	const { chunks: parsed, chunker, title } = chunkText(row.document, extraction.pages);
 	if (parsed.length === 0) throw new Error('Nenhum texto aproveitável foi extraído do arquivo.');
 
 	await db.transaction(async (tx) => {
@@ -150,6 +159,9 @@ async function ingestVersion(ctx: IngestContext, job: Job): Promise<number> {
 				contentHash: chunk.contentHash
 			}))
 		);
+		if (title !== row.document.title) {
+			await tx.update(documents).set({ title }).where(eq(documents.id, documentId));
+		}
 		await tx
 			.update(documentVersions)
 			.set({

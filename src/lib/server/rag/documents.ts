@@ -78,7 +78,7 @@ export async function uploadDocument(db: Db, upload: Upload): Promise<UploadOutc
 									? 'markdown'
 									: 'text',
 						collection: upload.collection,
-						citable: upload.citable,
+						citable: upload.collection === 'tese' ? false : upload.citable,
 						sourceUrl: upload.sourceUrl,
 						meta: upload.nr ? { nr: upload.nr } : {},
 						createdBy: upload.createdBy
@@ -116,6 +116,30 @@ export async function uploadDocument(db: Db, upload: Upload): Promise<UploadOutc
 		createdBy: upload.createdBy
 	});
 	return { kind: outcome.created ? 'created' : 'new-version', documentId: outcome.documentId };
+}
+
+const IMPORT_HOSTS = new Set(['www.gov.br']);
+const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+
+/** Downloads an official PDF (gov.br only) so NRs can be loaded without a manual download. */
+export async function fetchOfficialPdf(
+	url: string
+): Promise<{ filename: string; bytes: Uint8Array }> {
+	const parsed = new URL(url);
+	if (parsed.protocol !== 'https:' || !IMPORT_HOSTS.has(parsed.hostname)) {
+		throw new Error('Só é possível importar PDFs de https://www.gov.br.');
+	}
+	const response = await fetch(parsed, { redirect: 'error', signal: AbortSignal.timeout(60_000) });
+	if (!response.ok) throw new Error(`O gov.br respondeu ${response.status}.`);
+	if (!response.headers.get('content-type')?.includes('application/pdf')) {
+		throw new Error('O endereço não aponta para um PDF.');
+	}
+	const declared = Number(response.headers.get('content-length'));
+	if (declared > MAX_IMPORT_BYTES) throw new Error('O PDF passa de 50 MB.');
+	const bytes = new Uint8Array(await response.arrayBuffer());
+	if (bytes.byteLength > MAX_IMPORT_BYTES) throw new Error('O PDF passa de 50 MB.');
+	const filename = decodeURIComponent(parsed.pathname.split('/').pop() ?? 'norma.pdf');
+	return { filename: filename.endsWith('.pdf') ? filename : `${filename}.pdf`, bytes };
 }
 
 export async function listDocuments(db: Db) {

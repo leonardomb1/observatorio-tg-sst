@@ -41,6 +41,7 @@ export async function claim(db: Db, workerId: string): Promise<Job | null> {
 	return job ?? null;
 }
 
+/** Records progress and refreshes the lock so long jobs are not reaped while alive. */
 export async function report(
 	db: Db,
 	id: number,
@@ -48,7 +49,10 @@ export async function report(
 	progress = 0,
 	total: number | null = null
 ): Promise<void> {
-	await db.update(ingestJobs).set({ stage, progress, total }).where(eq(ingestJobs.id, id));
+	await db
+		.update(ingestJobs)
+		.set({ stage, progress, total, lockedAt: new Date() })
+		.where(eq(ingestJobs.id, id));
 }
 
 export async function complete(db: Db, id: number, usageTokens: number): Promise<void> {

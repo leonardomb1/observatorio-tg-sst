@@ -12,6 +12,8 @@
 	let sending = $state(false);
 	let isNr = $state(false);
 	let title = $state('');
+	let collection = $state('normas');
+	let importing = $state(false);
 
 	const groups = $derived(
 		Object.entries(Object.groupBy(data.documents, (document) => document.collection)).toSorted(
@@ -66,6 +68,46 @@
 </section>
 
 <section class="l-stack upload">
+	<h2>Importar NR do gov.br</h2>
+	<p class="note">
+		Cole o endereço do PDF oficial da norma no gov.br. O arquivo é baixado, guardado e dividido por
+		item.
+	</p>
+	<form
+		method="POST"
+		action="?/importar"
+		class="l-stack"
+		use:enhance={() => {
+			importing = true;
+			return async ({ update }) => {
+				await update({ reset: false });
+				importing = false;
+			};
+		}}
+	>
+		<div class="l-cluster import">
+			<label class="field grow">
+				<span>Endereço do PDF</span>
+				<input
+					name="url"
+					type="url"
+					required
+					placeholder="https://www.gov.br/trabalho-e-emprego/…/NR35atualizada2023.pdf"
+				/>
+			</label>
+			<label class="field">
+				<span>NR</span>
+				<input name="nr" type="number" min="1" max="40" required class="short" />
+			</label>
+			<Button type="submit" variant="primary" disabled={importing}
+				>{importing ? 'Importando…' : 'Importar'}</Button
+			>
+		</div>
+		{#if form?.importError}<p class="error" role="alert">{form.importError}</p>{/if}
+	</form>
+</section>
+
+<section class="l-stack upload">
 	<h2>Enviar documento</h2>
 	<form
 		method="POST"
@@ -103,9 +145,9 @@
 
 		<fieldset class="l-cluster">
 			<legend>Coleção</legend>
-			{#each Object.entries(collectionLabel) as [value, label], index (value)}
+			{#each Object.entries(collectionLabel) as [value, label] (value)}
 				<label class="l-cluster option">
-					<input type="radio" name="collection" {value} checked={index === 0} />
+					<input type="radio" name="collection" {value} bind:group={collection} />
 					{label}
 				</label>
 			{/each}
@@ -128,9 +170,16 @@
 			<input name="sourceUrl" type="url" placeholder="https://www.gov.br/…" />
 		</label>
 
-		<label class="l-cluster option">
-			<input type="checkbox" name="citable" checked /> O assistente pode citar este documento
-		</label>
+		{#if collection === 'tese'}
+			<p class="note">
+				Documentos do Trabalho de Graduação entram como não citáveis. Libere a citação na página do
+				documento quando for o momento.
+			</p>
+		{:else}
+			<label class="l-cluster option">
+				<input type="checkbox" name="citable" checked /> O assistente pode citar este documento
+			</label>
+		{/if}
 
 		{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
 
@@ -188,6 +237,24 @@
 
 	.error {
 		color: var(--death);
+	}
+
+	.note {
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+	}
+
+	.import {
+		align-items: end;
+	}
+
+	.grow {
+		flex: 1;
+		min-inline-size: 16rem;
+	}
+
+	.short {
+		inline-size: 5rem;
 	}
 
 	.empty {

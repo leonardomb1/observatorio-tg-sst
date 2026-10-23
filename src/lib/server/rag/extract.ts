@@ -53,7 +53,10 @@ async function ocrPage(pdfPath: string, workdir: string, page: number): Promise<
 }
 
 /** Text layer per page; pages without one are rendered and run through Tesseract. */
-async function extractPdf(bytes: Uint8Array): Promise<Extraction> {
+async function extractPdf(
+	bytes: Uint8Array,
+	onOcrPage: (done: number, total: number) => Promise<void>
+): Promise<Extraction> {
 	const { text } = await extractText(new Uint8Array(bytes), { mergePages: false });
 	const missing = text.flatMap((pageText, index) =>
 		pageText.trim().length < MIN_TEXT_PER_PAGE ? [index] : []
@@ -71,8 +74,9 @@ async function extractPdf(bytes: Uint8Array): Promise<Extraction> {
 		const pdfPath = join(workdir, 'source.pdf');
 		await writeFile(pdfPath, bytes);
 		const pages = [...text];
-		for (const index of missing) {
+		for (const [done, index] of missing.entries()) {
 			pages[index] = await ocrPage(pdfPath, workdir, index + 1);
+			await onOcrPage(done + 1, missing.length);
 		}
 		return {
 			pages: pages.map((pageText, index) => ({ number: index + 1, text: pageText })),
@@ -84,8 +88,12 @@ async function extractPdf(bytes: Uint8Array): Promise<Extraction> {
 	}
 }
 
-export async function extract(bytes: Uint8Array, mimeType: string): Promise<Extraction> {
-	if (mimeType === 'application/pdf') return extractPdf(bytes);
+export async function extract(
+	bytes: Uint8Array,
+	mimeType: string,
+	onOcrPage: (done: number, total: number) => Promise<void> = () => Promise.resolve()
+): Promise<Extraction> {
+	if (mimeType === 'application/pdf') return extractPdf(bytes, onOcrPage);
 	if (mimeType.startsWith('text/')) {
 		return {
 			pages: [{ number: null, text: new TextDecoder('utf-8').decode(bytes) }],
