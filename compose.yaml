@@ -18,8 +18,10 @@ services:
     networks:
       - default
       - proxy
-    extra_hosts:
-      - auth.greencrest.com.br:172.18.0.2
+    # Reaches the IdP (auth.greencrest.com.br) from the backend. That name is a
+    # Docker DNS alias of Caddy on the `proxy` network (see caddy/docker-compose.yml),
+    # so it resolves to Caddy wherever Caddy lands, and TLS still matches the cert.
+    # Replaced a hard-coded extra_hosts 172.18.0.2 on 2026-11-12.
     depends_on:
       db:
         condition: service_healthy
