@@ -37,6 +37,35 @@
 	<li>Formulário 300A, Occupational Safety and Health Administration (OSHA), Estados Unidos.</li>
 	<li>Normas regulamentadoras, Ministério do Trabalho e Emprego.</li>
 	<li>
+		<a href="https://sidra.ibge.gov.br/tabela/4093">PNAD Contínua</a>, IBGE: ocupação e
+		informalidade por estado.
+	</li>
+	<li>
+		<a href="https://dadosabertos.saude.gov.br/dataset/sim"
+			>Sistema de Informações sobre Mortalidade (SIM)</a
+		>, Ministério da Saúde: óbitos por causas externas.
+	</li>
+	<li>
+		<a href="https://datasus.saude.gov.br/transferencia-de-arquivos/"
+			>Sistema de Informação de Agravos de Notificação (SINAN)</a
+		>, Ministério da Saúde: agravos de saúde do trabalhador.
+	</li>
+	<li>
+		<a href="https://ec.europa.eu/eurostat/web/health/database"
+			>Estatísticas europeias de acidentes de trabalho (ESAW)</a
+		>, Eurostat.
+	</li>
+	<li>
+		<a href="https://www.gov.br/prf/pt-br/acesso-a-informacao/dados-abertos/dados-abertos-da-prf"
+			>Acidentes nas rodovias federais</a
+		>, Polícia Rodoviária Federal.
+	</li>
+	<li>
+		Cadastro de Empregadores que tenham submetido trabalhadores a condições análogas à escravidão,
+		Ministério do Trabalho e Emprego. O observatório guarda só os números agregados, sem nome,
+		documento ou endereço dos empregadores.
+	</li>
+	<li>
 		Tabelas de referência: CID-10, CBO, CNAE (IBGE/Concla), municípios (IBGE) e tabelas do eSocial.
 	</li>
 	<li>

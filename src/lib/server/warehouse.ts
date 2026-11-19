@@ -1,7 +1,16 @@
 import { calendar } from './catalog/anos.ts';
 import { benefitsByYear } from './catalog/beneficios.ts';
 import { agentFamilies, bodyPartFamilies, injuryFamilies } from './catalog/causas.ts';
+import { socialProfile } from './catalog/desigualdade.ts';
+import { slaveRegister } from './catalog/escravidao.ts';
+import { europeComparison } from './catalog/europa.ts';
+import { mentalHealth } from './catalog/incapacidade.ts';
+import { informality } from './catalog/informalidade.ts';
 import { lethalityByType } from './catalog/perfil.ts';
+import { highwayDrivers } from './catalog/rodovias.ts';
+import { turnover } from './catalog/rotatividade.ts';
+import { healthDeaths } from './catalog/sim.ts';
+import { sinanNotifications } from './catalog/sinan.ts';
 import {
 	brazilSeries,
 	municipalRates,
@@ -23,7 +32,16 @@ export const warehouse = {
 	agentFamilies: agentFamilies(query),
 	bodyPartFamilies: bodyPartFamilies(query),
 	injuryFamilies: injuryFamilies(query),
-	benefitsByYear: () => benefitsByYear(query)
+	benefitsByYear: () => benefitsByYear(query),
+	socialProfile: () => socialProfile(query),
+	informality: () => informality(query),
+	europeComparison: () => europeComparison(query),
+	turnover: () => turnover(query),
+	healthDeaths: () => healthDeaths(query),
+	mentalHealth: () => mentalHealth(query),
+	sinanNotifications: () => sinanNotifications(query),
+	highwayDrivers: () => highwayDrivers(query),
+	slaveRegister: () => slaveRegister(query)
 };
 
 /** Public pages are identical for everyone; the CDN may keep them for a day. */

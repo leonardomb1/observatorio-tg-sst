@@ -85,6 +85,13 @@
 						>
 					</li>
 				{/each}
+				<li>
+					<a
+						href={resolve('/temas')}
+						aria-current={page.route.id?.startsWith('/temas') ? 'page' : undefined}
+						><Icon name="layers" />Temas</a
+					>
+				</li>
 			</ul>
 		</nav>
 		<a
