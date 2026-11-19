@@ -113,6 +113,59 @@ export function yearBars(
 	};
 }
 
+export interface ColumnPoint {
+	label: string;
+	value: number | null;
+	/** Drawn muted with a dashed outline, like a partial year. */
+	muted?: boolean;
+}
+
+/** Vertical bars kept in the given order, for ordinal categories such as hours or schooling. */
+export function columnBars(
+	tokens: ChartTokens,
+	points: readonly ColumnPoint[],
+	format: (value: number) => string,
+	labels = true
+): EChartsCoreOption {
+	return {
+		grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+		xAxis: {
+			type: 'category',
+			data: points.map((point) => point.label),
+			axisLabel: { color: tokens.ink2, interval: 0, hideOverlap: true }
+		},
+		yAxis: { type: 'value', axisLabel: { formatter: (value: number) => format(value) } },
+		series: [
+			{
+				type: 'bar',
+				barCategoryGap: '30%',
+				animationDelay: staggered,
+				data: points.map((point) => ({
+					value: point.value,
+					itemStyle: point.muted
+						? {
+								color: tokens.neutral,
+								borderColor: tokens.ink3,
+								borderType: 'dashed',
+								borderWidth: 1
+							}
+						: { color: tokens.ink }
+				})),
+				label: {
+					show: labels,
+					position: 'top',
+					color: tokens.ink2,
+					formatter: ({ value }: { value: number }) => format(value)
+				}
+			}
+		],
+		tooltip: {
+			trigger: 'axis',
+			valueFormatter: (value: unknown) => (typeof value === 'number' ? format(value) : '—')
+		}
+	};
+}
+
 /**
  * Two series over years, the subject in ink and the reference in grey, labelled
  * at the line end. Years empty in both series at either edge are dropped: the
@@ -130,17 +183,35 @@ export function compareLines(
 	);
 	const first = filled.indexOf(true);
 	const end = filled.lastIndexOf(true) + 1;
-	const line = (name: string, values: (number | null)[], color: string, width: number) => ({
-		type: 'line',
-		name,
-		data: values.slice(first, end),
-		connectNulls: false,
-		showSymbol: true,
-		symbolSize: 5,
-		lineStyle: { color, width },
-		itemStyle: { color },
-		endLabel: { show: true, formatter: name, color, fontWeight: 600 }
-	});
+	const line = (name: string, values: (number | null)[], color: string, width: number) => {
+		const shown = values.slice(first, end);
+		const lastValue = shown.findLastIndex((value) => value != null);
+		return {
+			type: 'line',
+			name,
+			data: shown.map((value, index) =>
+				index === lastValue
+					? {
+							value,
+							label: {
+								show: true,
+								position: 'right',
+								formatter: name,
+								color,
+								fontWeight: 600
+							}
+						}
+					: value
+			),
+			connectNulls: false,
+			symbol: 'circle',
+			showSymbol: true,
+			showAllSymbol: true,
+			symbolSize: 5,
+			lineStyle: { color, width },
+			itemStyle: { color }
+		};
+	};
 	return {
 		grid: { left: 8, right: 96, top: 16, bottom: 8, containLabel: true },
 		xAxis: { type: 'category', data: years.slice(first, end).map(String), boundaryGap: false },
