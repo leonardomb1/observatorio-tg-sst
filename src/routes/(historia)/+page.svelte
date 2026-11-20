@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/components/Icon.svelte';
 	import KpiCard from '#lib/components/KpiCard.svelte';
@@ -106,9 +105,7 @@
 		</div>
 		<p class="hint">
 			Cada número é do último ano fechado da sua fonte. A taxa divide os acidentes pelos vínculos
-			formais sem administração pública; a <a href={resolve('/(institucional)/metodologia')}
-				>metodologia</a
-			> explica cada medida.
+			formais sem administração pública.
 		</p>
 	</section>
 

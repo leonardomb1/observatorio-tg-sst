@@ -30,13 +30,7 @@
 			route: `/(grupos)/${group.slug}`,
 			label: group.title,
 			icon: group.icon
-		})),
-		{
-			href: resolve('/(institucional)/metodologia'),
-			route: '/(institucional)/metodologia',
-			label: 'Metodologia',
-			icon: 'book' as IconName
-		}
+		}))
 	]);
 
 	const search = $derived(globalSearch(page.url));
@@ -104,7 +98,6 @@
 			<nav aria-label="Institucional">
 				<ul class="links">
 					<li><a href={resolve('/(institucional)/sobre')}>Sobre</a></li>
-					<li><a href={resolve('/(institucional)/metodologia')}>Metodologia</a></li>
 					<li><a href={resolve('/(institucional)/fontes')}>Fontes e dados</a></li>
 					<li><a href={resolve('/(institucional)/ia')}>Inteligência artificial</a></li>
 					<li><a href={resolve('/(institucional)/privacidade')}>Privacidade</a></li>
