@@ -24,7 +24,6 @@
 	const autonomo = $derived(
 		data.situations.find((row) => row.situation === 'Autônomo ou conta própria')
 	);
-	const serious = $derived(data.conditions.find((row) => row.code === 'ACGR'));
 	const lastFinal = $derived(data.seriousYears.find((row) => row.year === data.year));
 	const preliminary = $derived(data.seriousYears.filter((row) => row.preliminary));
 </script>
@@ -75,57 +74,6 @@
 							highlight: row.bond === 'informal'
 						})),
 						(value) => formatPercent(value / 100)
-					)}
-			/>
-		{/snippet}
-	</Panel>
-
-	<Panel
-		title={serious
-			? `${formatInteger(serious.notifications)} acidentes de trabalho graves foram notificados ao SUS em ${data.year}`
-			: `Notificações por agravo, ${data.year}`}
-		subtitle="Notificações dos agravos de saúde do trabalhador no SINAN, {data.year}"
-		{source}
-		columns={[
-			{ key: 'name', label: 'Agravo' },
-			{
-				key: 'notifications',
-				label: 'Notificações',
-				numeric: true,
-				format: (cell) => formatInteger(cell as number)
-			},
-			{
-				key: 'informalPct',
-				label: 'Informais (%)',
-				numeric: true,
-				format: (cell) => formatDecimal(cell as number | null)
-			},
-			{
-				key: 'withCatPct',
-				label: 'Com CAT (%)',
-				numeric: true,
-				format: (cell) => formatDecimal(cell as number | null)
-			}
-		]}
-		rows={data.conditions}
-		slug="sinan-notificacoes-por-agravo-{data.year}"
-	>
-		{#snippet note()}
-			<p>
-				Informais são as notificações de empregados sem carteira, autônomos, temporários e avulsos,
-				entre as que informam a situação de trabalho. A intoxicação exógena entra só quando a
-				notificação a relaciona ao trabalho.
-			</p>
-		{/snippet}
-		{#snippet chart()}
-			<Chart
-				label="Notificações por agravo de saúde do trabalhador em {data.year}."
-				height="20rem"
-				option={(tokens) =>
-					rankingBars(
-						tokens,
-						data.conditions.map((row) => ({ label: row.name, value: row.notifications })),
-						(value) => formatInteger(value)
 					)}
 			/>
 		{/snippet}

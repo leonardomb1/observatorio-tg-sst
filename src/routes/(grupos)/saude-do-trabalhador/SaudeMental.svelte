@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Chart from '#lib/charts/Chart.svelte';
-	import { rankingBars, yearBars } from '#lib/charts/options.ts';
+	import { rankingBars } from '#lib/charts/options.ts';
 	import Panel from '#lib/components/Panel.svelte';
-	import { formatCompact, formatDecimal, formatInteger, formatPercent } from '#lib/format.ts';
+	import { formatDecimal, formatInteger, formatPercent } from '#lib/format.ts';
 	import type { MentalHealth } from '#lib/server/catalog/incapacidade.ts';
 	import { topicSource } from '#lib/sources.ts';
 
@@ -18,77 +18,12 @@
 			`concessões de ${data.years[0]?.year ?? '—'} a ${data.years.at(-1)?.year ?? '—'}`
 		)
 	);
-	const reliable = $derived(data.years.filter((row) => row.complete && row.diagnosisReliable));
-	const first = $derived(reliable[0]);
-	const last = $derived(reliable.find((row) => row.year === data.year));
-	const growth = $derived(first && last && first !== last ? last.grants / first.grants : null);
-	const unreliable = $derived(data.years.filter((row) => !row.complete || !row.diagnosisReliable));
 	const mental = $derived(data.groups.find((row) => row.group.startsWith('Transtornos mentais')));
 	const injuries = $derived(data.groups.find((row) => row.group.startsWith('Lesões')));
 	const topTwo = $derived(data.diagnoses.slice(0, 2));
 </script>
 
 <div class="l-grid panels">
-	<Panel
-		title={last && first && growth
-			? `Afastamentos por transtorno mental chegaram a ${formatInteger(last.grants)} em ${last.year}, ${formatDecimal(growth)} vezes os de ${first.year}`
-			: 'Afastamentos por transtorno mental por ano'}
-		subtitle="Auxílios por incapacidade temporária concedidos com diagnóstico no capítulo F da CID-10 (B31 e B91)"
-		{source}
-		columns={[
-			{ key: 'year', label: 'Ano' },
-			{
-				key: 'grants',
-				label: 'Concessões',
-				numeric: true,
-				format: (cell) => formatInteger(cell as number)
-			},
-			{
-				key: 'accidentGrants',
-				label: 'Acidentárias (B91)',
-				numeric: true,
-				format: (cell) => formatInteger(cell as number)
-			},
-			{
-				key: 'diagnosisPct',
-				label: 'Concessões com CID informado (%)',
-				numeric: true,
-				format: (cell) => formatDecimal(cell as number | null)
-			}
-		]}
-		rows={data.years}
-		slug="afastamentos-transtorno-mental-por-ano"
-	>
-		{#snippet note()}
-			<p>
-				Barras claras com contorno tracejado são anos que não se comparam:
-				{unreliable.map((row) => row.year).join(', ')}. O primeiro e o último estão incompletos, e
-				de 2021 a 2023 o INSS publicou a maior parte das concessões sem o diagnóstico, de modo que a
-				contagem mede a falta do dado e não o adoecimento.
-			</p>
-			<p>
-				Conta concessões de benefício, não pessoas: quem se afasta duas vezes no ano aparece duas
-				vezes.
-			</p>
-		{/snippet}
-		{#snippet chart()}
-			<Chart
-				label="Afastamentos por transtorno mental por ano; anos comparáveis em barras escuras."
-				height="18rem"
-				option={(tokens) =>
-					yearBars(
-						tokens,
-						data.years.map((row) => ({
-							year: row.year,
-							status: row.complete && row.diagnosisReliable ? 'consolidado' : 'parcial',
-							value: row.grants
-						})),
-						(value) => formatCompact(value)
-					)}
-			/>
-		{/snippet}
-	</Panel>
-
 	<Panel
 		title={mental?.accidentPct != null && injuries?.accidentPct != null
 			? `Só ${formatPercent(mental.accidentPct / 100)} dos afastamentos por transtorno mental têm o nexo com o trabalho reconhecido, contra ${formatPercent(injuries.accidentPct / 100)} nas lesões`

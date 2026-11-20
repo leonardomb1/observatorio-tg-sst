@@ -44,6 +44,14 @@ export const TOPIC_SOURCES = {
 		name: 'Polícia Rodoviária Federal, dados abertos de acidentes',
 		href: 'https://www.gov.br/prf/pt-br/acesso-a-informacao/dados-abertos/dados-abertos-da-prf'
 	},
+	osha: {
+		name: 'OSHA, Injury Tracking Application (dados de estabelecimentos dos EUA)',
+		href: 'https://www.osha.gov/Establishment-Specific-Injury-and-Illness-Data'
+	},
+	ilostat: {
+		name: 'ILOSTAT, Organização Internacional do Trabalho, e CAT/RAIS',
+		href: 'https://ilostat.ilo.org/topics/safety-and-health-at-work/'
+	},
 	escravidao: {
 		name: 'Cadastro de Empregadores (trabalho análogo à escravidão), MTE',
 		href: 'https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/inspecao-do-trabalho/areas-de-atuacao/cadastro_de_empregadores'

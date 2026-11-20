@@ -1,29 +1,19 @@
+import { readFilters } from '#lib/filters.ts';
 import { PUBLIC_CACHE, warehouse } from '#lib/server/warehouse.ts';
 import type { PageServerLoad } from './$types';
 
-/** The filtered sections, #estados and #atividades, share `ano` and `medida`. */
+/** Key numbers of each group for the last complete year, for Brazil or the selected state. */
 export const load: PageServerLoad = async ({ url, setHeaders }) => {
-	const [calendar, series] = await Promise.all([warehouse.calendar(), warehouse.brazilSeries()]);
-	const years = series.filter((row) => row.accidentRate !== null);
-	const requested = Number(url.searchParams.get('ano'));
-	const year = years.some((row) => row.year === requested) ? requested : calendar.lastConsolidated;
-	const metric = url.searchParams.get('medida') === 'obitos' ? 'obitos' : 'acidentes';
-	const brazil = years.find((row) => row.year === year);
-	if (!brazil) throw new Error(`Taxa nacional ausente para ${year}`);
-	const [ufs, sectors] = await Promise.all([
-		warehouse.ufRanking(year),
-		warehouse.sectorRanking(year)
+	const { selection } = readFilters(url.searchParams);
+	const filters = { year: null, selection: selection.uf ? { uf: selection.uf } : {} };
+	const [calendar, accidents, mental, notifications, deaths, register] = await Promise.all([
+		warehouse.calendar(),
+		warehouse.cubeView('acidentes', filters),
+		warehouse.cubeView('saude-mental', filters),
+		warehouse.cubeView('notificacoes-sus', filters),
+		warehouse.cubeView('mortes-no-sus', filters),
+		warehouse.slaveRegister()
 	]);
 	setHeaders(PUBLIC_CACHE);
-	return {
-		filters: {
-			year,
-			metric,
-			status: brazil.status,
-			years: years.map((row) => ({ year: row.year, status: row.status })),
-			brazil
-		},
-		ufs,
-		sectors
-	} as const;
+	return { calendar, accidents, mental, notifications, deaths, register };
 };

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Chart from '#lib/charts/Chart.svelte';
-	import { columnBars, rankingBars, yearBars } from '#lib/charts/options.ts';
+	import { columnBars, rankingBars } from '#lib/charts/options.ts';
 	import Panel from '#lib/components/Panel.svelte';
 	import { formatDecimal, formatInteger } from '#lib/format.ts';
 	import type { HighwayDrivers } from '#lib/server/catalog/rodovias.ts';
@@ -16,10 +16,6 @@
 	const source = $derived(
 		topicSource('prf', `acidentes de ${data.firstYear} a ${data.truckYears.at(-1)?.year ?? '—'}`)
 	);
-	const complete = $derived(data.truckYears.filter((row) => row.complete));
-	const minDeaths = $derived(Math.min(...complete.map((row) => row.deaths)));
-	const maxDeaths = $derived(Math.max(...complete.map((row) => row.deaths)));
-	const open = $derived(data.truckYears.find((row) => !row.complete));
 	const sum = (rows: HighwayDrivers['truckHours']) => ({
 		drivers: rows.reduce((total, row) => total + row.drivers, 0),
 		deaths: rows.reduce((total, row) => total + row.deaths, 0)
@@ -31,60 +27,6 @@
 </script>
 
 <div class="l-grid panels">
-	<Panel
-		title={complete.length
-			? `De ${formatInteger(minDeaths)} a ${formatInteger(maxDeaths)} caminhoneiros morreram por ano em acidentes nas rodovias federais`
-			: 'Caminhoneiros mortos em acidentes nas rodovias federais'}
-		subtitle="Condutores de caminhão e caminhão-trator mortos em acidentes nas rodovias federais, por ano"
-		{source}
-		columns={[
-			{ key: 'year', label: 'Ano' },
-			{
-				key: 'deaths',
-				label: 'Óbitos',
-				numeric: true,
-				format: (cell) => formatInteger(cell as number)
-			},
-			{
-				key: 'drivers',
-				label: 'Condutores envolvidos',
-				numeric: true,
-				format: (cell) => formatInteger(cell as number)
-			}
-		]}
-		rows={data.truckYears}
-		slug="caminhoneiros-mortos-por-ano"
-	>
-		{#snippet note()}
-			{#if open}
-				<p>
-					A barra clara com contorno tracejado é {open.year}, ano ainda em aberto na fonte.
-				</p>
-			{/if}
-			<p>
-				Só rodovias federais, que a PRF patrulha; acidentes em rodovias estaduais e em vias urbanas
-				ficam de fora. O condutor de caminhão é tratado como trabalhador porque dirigir é a
-				atividade dele, mas a fonte não registra o vínculo.
-			</p>
-		{/snippet}
-		{#snippet chart()}
-			<Chart
-				label="Condutores de caminhão mortos em acidentes nas rodovias federais, por ano."
-				height="18rem"
-				option={(tokens) =>
-					yearBars(
-						tokens,
-						data.truckYears.map((row) => ({
-							year: row.year,
-							status: row.complete ? 'consolidado' : 'parcial',
-							value: row.deaths
-						})),
-						(value) => formatInteger(value)
-					)}
-			/>
-		{/snippet}
-	</Panel>
-
 	<Panel
 		title={nightRate && dayRate
 			? `Na madrugada, o acidente com caminhoneiro mata ${formatDecimal(nightRate / dayRate)} vezes mais que durante o dia`

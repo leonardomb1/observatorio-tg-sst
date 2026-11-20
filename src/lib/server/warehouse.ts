@@ -1,10 +1,12 @@
 import { calendar } from './catalog/anos.ts';
 import { benefitsByYear } from './catalog/beneficios.ts';
+import { cubeView } from './catalog/cubos.ts';
 import { agentFamilies, bodyPartFamilies, injuryFamilies } from './catalog/causas.ts';
 import { socialProfile } from './catalog/desigualdade.ts';
 import { slaveRegister } from './catalog/escravidao.ts';
 import { europeComparison } from './catalog/europa.ts';
 import { mentalHealth } from './catalog/incapacidade.ts';
+import { usaSeries, worldComparison } from './catalog/internacional.ts';
 import { informality } from './catalog/informalidade.ts';
 import { lethalityByType } from './catalog/perfil.ts';
 import { highwayDrivers } from './catalog/rodovias.ts';
@@ -33,7 +35,10 @@ export const warehouse = {
 	bodyPartFamilies: bodyPartFamilies(query),
 	injuryFamilies: injuryFamilies(query),
 	benefitsByYear: () => benefitsByYear(query),
-	socialProfile: () => socialProfile(query),
+	socialProfile: socialProfile(query),
+	cubeView: cubeView(query),
+	worldComparison: () => worldComparison(query),
+	usaSeries: () => usaSeries(query),
 	informality: () => informality(query),
 	europeComparison: () => europeComparison(query),
 	turnover: () => turnover(query),

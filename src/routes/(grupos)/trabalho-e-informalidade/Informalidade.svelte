@@ -1,16 +1,20 @@
 <script lang="ts">
+	import BrazilMap from '#lib/charts/BrazilMap.svelte';
 	import Chart from '#lib/charts/Chart.svelte';
 	import { compareLines, rankingBars } from '#lib/charts/options.ts';
 	import Panel from '#lib/components/Panel.svelte';
 	import { formatDecimal, formatInteger, formatPercent } from '#lib/format.ts';
 	import type { Informality } from '#lib/server/catalog/informalidade.ts';
 	import { topicSource } from '#lib/sources.ts';
+	import { toUf } from '#lib/uf.ts';
 
 	interface Props {
 		data: Informality;
+		/** Selected state's abbreviation, highlighted in the ranking. */
+		uf: string | null;
 	}
 
-	let { data }: Props = $props();
+	let { data, uf }: Props = $props();
 
 	const lastQuarter = $derived(data.quarters.at(-1)?.quarter ?? null);
 	const source = $derived(
@@ -86,17 +90,33 @@
 			</p>
 		{/snippet}
 		{#snippet chart()}
-			<Chart
-				label="Vínculos formais por 100 pessoas ocupadas por UF em {data.year}."
-				height="40rem"
-				option={(tokens) =>
-					rankingBars(
-						tokens,
-						data.states.map((row) => ({ label: row.uf, value: row.tiesPerHundred })),
-						(value) => formatDecimal(value),
-						{ value: 100, label: '100 por 100' }
-					)}
-			/>
+			<div class="split">
+				<BrazilMap
+					scope={{ kind: 'states' }}
+					areas={data.states.map((row) => ({
+						key: toUf(row.uf) ?? row.uf,
+						label: row.uf,
+						value: row.tiesPerHundred
+					}))}
+					format={(value) => formatDecimal(value)}
+					label="Mapa de vínculos formais por 100 pessoas ocupadas por UF em {data.year}."
+				/>
+				<Chart
+					label="Vínculos formais por 100 pessoas ocupadas por UF em {data.year}."
+					height="40rem"
+					option={(tokens) =>
+						rankingBars(
+							tokens,
+							data.states.map((row) => ({
+								label: row.uf,
+								value: row.tiesPerHundred,
+								highlight: uf !== null && toUf(row.uf) === uf
+							})),
+							(value) => formatDecimal(value),
+							{ value: 100, label: '100 por 100' }
+						)}
+				/>
+			</div>
 		{/snippet}
 	</Panel>
 
@@ -155,8 +175,15 @@
 </div>
 
 <style>
+	.split {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+		gap: var(--space-5);
+		align-items: start;
+	}
+
 	.panels {
-		--grid-min: 30rem;
+		--grid-min: 100%;
 		--grid-gap: var(--space-7) var(--space-6);
 	}
 </style>

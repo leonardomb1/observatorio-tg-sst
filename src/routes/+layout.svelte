@@ -2,98 +2,85 @@
 	import '@fontsource-variable/source-serif-4';
 	import '@fontsource-variable/source-sans-3';
 	import '#lib/styles/app.css';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import type { Attachment } from 'svelte/attachments';
-	import { prefersReducedMotion } from 'svelte/motion';
 	import { CONTACT_EMAIL } from '#lib/contact.ts';
+	import Combobox from '#lib/components/Combobox.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import { setToaster, Toaster } from '#lib/components/toast.svelte.ts';
+	import { DIMENSIONS, globalSearch, readFilters, withParams } from '#lib/filters.ts';
+	import { GROUPS, groupPath } from '#lib/topics.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
 	setToaster(new Toaster());
 
-	const sections: { id: string; label: string; icon: IconName }[] = [
-		{ id: '', label: 'Visão geral', icon: 'chart' },
-		{ id: 'estados', label: 'Estados', icon: 'map' },
-		{ id: 'atividades', label: 'Atividades', icon: 'factory' },
-		{ id: 'como-acontece', label: 'Como acontece', icon: 'triangle-alert' },
-		{ id: 'beneficios', label: 'Benefícios', icon: 'wallet' }
-	];
+	const links = $derived([
+		{
+			href: resolve('/(historia)'),
+			route: '/(historia)',
+			label: 'Visão geral',
+			icon: 'chart' as IconName
+		},
+		...GROUPS.map((group) => ({
+			href: groupPath(group.slug),
+			route: `/(grupos)/${group.slug}`,
+			label: group.title,
+			icon: group.icon
+		})),
+		{
+			href: resolve('/(institucional)/metodologia'),
+			route: '/(institucional)/metodologia',
+			label: 'Metodologia',
+			icon: 'book' as IconName
+		}
+	]);
 
-	const home = resolve('/(historia)');
-	const onHome = $derived(page.route.id === '/(historia)');
-	let active = $state('');
+	const search = $derived(globalSearch(page.url));
+	const uf = $derived(readFilters(page.url.searchParams).selection.uf ?? null);
 
-	/** On the home page links keep the filters, so jumping between sections never resets them. */
-	const href = (id: string) => `${home}${onHome ? page.url.search : ''}${id ? `#${id}` : ''}`;
-
-	const current = (id: string) => {
-		if (onHome) return active === id ? 'location' : undefined;
-		if (id === 'estados' && page.route.id === '/territorio/[uf]') return 'page';
-		return undefined;
-	};
-
-	/**
-	 * Scroll-spy: the current section is the last one whose top has passed the
-	 * upper third of the viewport. On narrow screens the header strip scrolls
-	 * sideways to keep the current link in view.
-	 */
-	const spy: Attachment<HTMLElement> = (nav) => {
-		if (!onHome) return;
-		const targets = [...document.querySelectorAll<HTMLElement>('[data-section]')];
-		const passed: Record<string, boolean> = {};
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					passed[(entry.target as HTMLElement).dataset.section ?? ''] = entry.isIntersecting;
-				}
-				const last = targets.findLast((target) => passed[target.dataset.section ?? '']);
-				if (!last) return;
-				active = last.dataset.section ?? '';
-				const link = nav.querySelector<HTMLElement>(`[data-target="${active}"]`);
-				if (!link || nav.scrollWidth <= nav.clientWidth) return;
-				nav.scrollTo({
-					left: link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2,
-					behavior: prefersReducedMotion.current ? 'instant' : 'smooth'
-				});
-			},
-			{ rootMargin: '0px 0px -66% 0px' }
-		);
-		for (const target of targets) observer.observe(target);
-		return () => {
-			observer.disconnect();
-		};
-	};
+	function chooseUf(slug: string | null) {
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- same page, only the search changes
+		void goto(withParams(page.url, { uf: slug }), { replace: true, reset: false });
+	}
 </script>
 
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
 <header class="site-header">
 	<div class="l-page header-inner">
-		<a class="brand" href={home}>Observatório SST</a>
-		<nav aria-label="Seções" {@attach spy}>
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved path plus the site-wide state -->
+		<a class="brand" href="{resolve('/(historia)')}{search}">Observatório SST</a>
+		<nav aria-label="Grupos de análises">
 			<ul class="sections">
-				{#each sections as section (section.id)}
+				{#each links as link (link.route)}
 					<li>
-						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- built from the resolved home path -->
-						<a href={href(section.id)} aria-current={current(section.id)} data-target={section.id}
-							><Icon name={section.icon} />{section.label}</a
+						<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved path plus the site-wide state -->
+						<a
+							href="{link.href}{search}"
+							aria-current={page.route.id === link.route ? 'page' : undefined}
+							><Icon name={link.icon} />{link.label}</a
 						>
+						<!-- eslint-enable svelte/no-navigation-without-resolve -->
 					</li>
 				{/each}
-				<li>
-					<a
-						href={resolve('/temas')}
-						aria-current={page.route.id?.startsWith('/temas') ? 'page' : undefined}
-						><Icon name="layers" />Temas</a
-					>
-				</li>
 			</ul>
 		</nav>
+		<div class="place">
+			<Combobox
+				label="Estado"
+				placeholder="Brasil"
+				options={DIMENSIONS.uf.options.map((option) => ({
+					value: option.slug,
+					label: option.label
+				}))}
+				value={uf?.slug ?? null}
+				onchange={chooseUf}
+			/>
+		</div>
 		<a
 			class="ask"
 			href={resolve('/consulta')}
@@ -117,6 +104,7 @@
 			<nav aria-label="Institucional">
 				<ul class="links">
 					<li><a href={resolve('/(institucional)/sobre')}>Sobre</a></li>
+					<li><a href={resolve('/(institucional)/metodologia')}>Metodologia</a></li>
 					<li><a href={resolve('/(institucional)/fontes')}>Fontes e dados</a></li>
 					<li><a href={resolve('/(institucional)/ia')}>Inteligência artificial</a></li>
 					<li><a href={resolve('/(institucional)/privacidade')}>Privacidade</a></li>
@@ -162,9 +150,8 @@
 	.header-inner {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--space-2) var(--space-5);
-		align-items: baseline;
-		justify-content: space-between;
+		gap: var(--space-2) var(--space-4);
+		align-items: center;
 	}
 
 	.brand {
@@ -175,6 +162,8 @@
 	}
 
 	nav {
+		flex-basis: 100%;
+		order: 1;
 		min-inline-size: 0;
 		max-inline-size: 100%;
 		overflow-x: auto;
@@ -218,6 +207,30 @@
 		text-decoration-color: var(--ink);
 	}
 
+	.place {
+		flex: 0 1 11rem;
+		min-inline-size: 7rem;
+		margin-inline-start: auto;
+		font-size: var(--text-sm);
+	}
+
+	.place :global(.combobox) {
+		min-inline-size: 0;
+	}
+
+	.place :global(label) {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.place :global(input) {
+		padding-block: var(--space-1);
+	}
+
 	.ask {
 		display: inline-flex;
 		gap: var(--space-2);
@@ -233,13 +246,6 @@
 	.ask:hover,
 	.ask[aria-current] {
 		border-color: var(--ink);
-	}
-
-	@media (width < 60rem) {
-		nav {
-			flex-basis: 100%;
-			order: 1;
-		}
 	}
 
 	main {

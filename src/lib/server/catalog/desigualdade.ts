@@ -31,6 +31,8 @@ interface ProfileGroup {
 }
 
 export interface SocialProfile {
+	/** State the groups describe; null for Brazil. */
+	uf: string | null;
 	year: number;
 	edition: number;
 	groups: ProfileGroup[];
@@ -42,16 +44,18 @@ export interface SocialProfile {
 	}[];
 }
 
-/** Accidents by race and schooling from the official yearbook, its last year, for Brazil and by state. */
+/** Accidents by race and schooling from the official yearbook, its last year, for Brazil or a state, and by state. */
 export function socialProfile(query: Query) {
-	return cached('social-profile', async (): Promise<SocialProfile> => {
+	return cached('social-profile', async (uf: string | null): Promise<SocialProfile> => {
 		const groups = await rows(
 			query,
 			ProfileRow,
 			`SELECT ano, anuario, dimensao, categoria, ordem, acidentes, pct_sem_cat, pct_entre_informados
 			FROM aeat_perfil
-			WHERE escopo = 'Brasil' AND ano = (SELECT MAX(ano) FROM aeat_perfil)
-			ORDER BY dimensao, ordem`
+			WHERE ${uf === null ? "escopo = 'Brasil'" : "escopo_tipo = 'uf' AND uf_sigla = ?"}
+				AND ano = (SELECT MAX(ano) FROM aeat_perfil)
+			ORDER BY dimensao, ordem`,
+			uf === null ? [] : [uf]
 		);
 		const first = groups[0];
 		if (!first) throw new Error('Datamart sem o perfil do anuário');
@@ -69,6 +73,7 @@ export function socialProfile(query: Query) {
 			[first.ano]
 		);
 		return {
+			uf,
 			year: first.ano,
 			edition: first.anuario,
 			groups: groups.map((row) => ({
@@ -86,5 +91,5 @@ export function socialProfile(query: Query) {
 				withoutCatWhitePct: row.pct_sem_cat_brancos
 			}))
 		};
-	})();
+	});
 }

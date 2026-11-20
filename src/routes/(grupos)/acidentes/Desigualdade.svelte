@@ -5,12 +5,15 @@
 	import { formatDecimal, formatInteger, formatPercent } from '#lib/format.ts';
 	import type { SocialProfile } from '#lib/server/catalog/desigualdade.ts';
 	import { topicSource } from '#lib/sources.ts';
+	import { toUf, UF_NAMES } from '#lib/uf.ts';
 
 	interface Props {
 		data: SocialProfile;
 	}
 
 	let { data }: Props = $props();
+
+	const place = $derived(data.uf === null ? 'Brasil' : (UF_NAMES[data.uf] ?? data.uf));
 
 	const source = $derived(topicSource('aeat', `edição ${data.edition}, dados de ${data.year}`));
 	const schooling = $derived(
@@ -54,7 +57,7 @@
 		title={lowest?.withoutCatPct != null && highSchool?.withoutCatPct != null
 			? `Entre quem não tem instrução, ${formatPercent(lowest.withoutCatPct / 100)} dos acidentes só chegaram à Previdência sem CAT; com ensino médio completo, ${formatPercent(highSchool.withoutCatPct / 100)}`
 			: `Acidentes reconhecidos sem CAT por escolaridade, ${data.year}`}
-		subtitle="Acidentes reconhecidos sem CAT, em % dos acidentes de cada nível de instrução, Brasil, {data.year}"
+		subtitle="Acidentes reconhecidos sem CAT, em % dos acidentes de cada nível de instrução, {place}, {data.year}"
 		{source}
 		{columns}
 		rows={schooling}
@@ -96,7 +99,7 @@
 		title={black
 			? `Pessoas pretas e pardas somam ${formatPercent(black / 100)} dos acidentes de trabalho com raça/cor informada`
 			: `Acidentes por raça/cor, ${data.year}`}
-		subtitle="Participação de cada grupo nos acidentes com raça/cor informada, Brasil, {data.year}"
+		subtitle="Participação de cada grupo nos acidentes com raça/cor informada, {place}, {data.year}"
 		{source}
 		{columns}
 		rows={race}
@@ -163,7 +166,11 @@
 				option={(tokens) =>
 					rankingBars(
 						tokens,
-						data.ufs.map((row) => ({ label: row.uf, value: row.blackSharePct })),
+						data.ufs.map((row) => ({
+							label: row.uf,
+							value: row.blackSharePct,
+							highlight: data.uf !== null && toUf(row.uf) === data.uf
+						})),
 						(value) => formatPercent(value / 100)
 					)}
 			/>

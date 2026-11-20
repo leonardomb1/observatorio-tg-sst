@@ -28,8 +28,6 @@
 	const lowest = $derived(ranked[0]);
 	const highest = $derived(ranked.at(-1));
 	const yearRow = $derived(data.years.find((row) => row.year === data.year));
-	const road = $derived(data.causes.find((row) => row.cause === 'Trânsito'));
-	const causesTotal = $derived(data.causes.reduce((sum, row) => sum + row.deaths, 0));
 </script>
 
 <div class="l-grid panels">
@@ -148,38 +146,6 @@
 									label: `Brasil: ${formatPercent(yearRow.filledPct / 100)}`
 								}
 							: undefined
-					)}
-			/>
-		{/snippet}
-	</Panel>
-
-	<Panel
-		title={road && causesTotal
-			? `O trânsito responde por ${formatPercent(road.deaths / causesTotal)} das mortes no trabalho registradas pelo SUS em ${data.year}`
-			: `Óbitos de trabalho por grupo de causa, ${data.year}`}
-		subtitle="Óbitos com o campo acidente de trabalho marcado no SIM, por grupo da causa básica, {data.year}"
-		{source}
-		columns={[
-			{ key: 'cause', label: 'Grupo de causa' },
-			{
-				key: 'deaths',
-				label: 'Óbitos',
-				numeric: true,
-				format: (cell) => formatInteger(cell as number)
-			}
-		]}
-		rows={data.causes}
-		slug="sim-obitos-trabalho-por-causa-{data.year}"
-	>
-		{#snippet chart()}
-			<Chart
-				label="Óbitos por acidente de trabalho no SIM por grupo de causa em {data.year}."
-				height="20rem"
-				option={(tokens) =>
-					rankingBars(
-						tokens,
-						data.causes.map((row) => ({ label: row.cause, value: row.deaths })),
-						(value) => formatInteger(value)
 					)}
 			/>
 		{/snippet}

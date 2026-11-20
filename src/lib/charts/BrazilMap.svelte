@@ -59,7 +59,7 @@
 			/>
 		</div>
 		<ul class="legend">
-			{#each classes as piece, index (piece.label)}
+			{#each classes as piece, index (index)}
 				<li>
 					<span class="swatch" style:background="var(--rate-{index + 1})"></span>{piece.label}
 				</li>
