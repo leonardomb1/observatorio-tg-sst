@@ -192,6 +192,17 @@
 		void goto(withParams(page.url, changes), { replace: true, reset: false });
 	}
 
+	/** Clicking a bar filters the page by it; clicking the selected one clears the filter. */
+	function drill(dim: Dimension, rows: readonly Row[], label: string) {
+		const row = rows.find((each) => each.label === label);
+		if (!row?.key) return;
+		const selected = selection[dim]?.value === row.key;
+		const slug =
+			DIMENSIONS[dim].options.find((option) => option.value === row.key)?.slug ?? row.key;
+		const value = selected ? null : slug;
+		select(dim === 'uf' ? { uf: value, municipio: null } : { [dim]: value });
+	}
+
 	function selectUf(uf: string) {
 		const option = DIMENSIONS.uf.options.find((each) => each.value === uf);
 		if (option) select({ uf: option.slug, municipio: null });
@@ -324,7 +335,7 @@
 					slug="{slug}-uf-{view.year}"
 				>
 					{#snippet note()}
-						<p>Clique em um estado para filtrar a página inteira por ele.</p>
+						<p>Clique em um estado, no mapa ou na barra, para filtrar a página inteira por ele.</p>
 					{/snippet}
 					{#snippet chart()}
 						{@render switcher(part, index)}
@@ -343,6 +354,9 @@
 							<Chart
 								label="{measure.label} nos estados de maior valor em {view.year}."
 								height="{top.length * 1.6 + 1}rem"
+								onselect={(name) => {
+									drill('uf', top, name);
+								}}
 								option={(tokens) =>
 									rankingBars(
 										tokens,
@@ -410,6 +424,9 @@
 							<Chart
 								label="{measure.label} nos municípios de maior valor em {view.year}."
 								height="{top.length * 1.6 + 1}rem"
+								onselect={(name) => {
+									drill('municipio', top, name);
+								}}
 								option={(tokens) =>
 									rankingBars(
 										tokens,
@@ -456,6 +473,12 @@
 							? ` e mostra os ${String(part.top)} maiores`
 							: ''}; a tabela traz todos.
 					</p>
+					{#if dim}
+						<p>
+							Clique em uma barra para filtrar a página inteira por ela; clique de novo para tirar o
+							filtro.
+						</p>
+					{/if}
 				{/snippet}
 				{#snippet chart()}
 					{@render switcher(part, index)}
@@ -463,10 +486,19 @@
 						<Chart
 							label="{measure.label} por {lowerFirst(title)} em {view.year}."
 							height="16rem"
+							onselect={dim
+								? (name) => {
+										drill(dim, shown, name);
+									}
+								: undefined}
 							option={(tokens) =>
 								columnBars(
 									tokens,
-									shown.map((row) => ({ label: row.label, value: row.value })),
+									shown.map((row) => ({
+										label: row.label,
+										value: row.value,
+										highlight: row.highlight
+									})),
 									measure.format,
 									shown.length <= 12
 								)}
@@ -475,6 +507,11 @@
 						<Chart
 							label="{measure.label} por {lowerFirst(title)} em {view.year}, em ordem decrescente."
 							height="{Math.max(shown.length, 2) * 1.8 + 1}rem"
+							onselect={dim
+								? (name) => {
+										drill(dim, shown, name);
+									}
+								: undefined}
 							option={(tokens) =>
 								rankingBars(
 									tokens,

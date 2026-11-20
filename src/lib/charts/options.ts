@@ -118,6 +118,8 @@ export interface ColumnPoint {
 	value: number | null;
 	/** Drawn muted with a dashed outline, like a partial year. */
 	muted?: boolean;
+	/** The selected category, in the accent colour. */
+	highlight?: boolean;
 }
 
 /** Vertical bars kept in the given order, for ordinal categories such as hours or schooling. */
@@ -149,7 +151,7 @@ export function columnBars(
 								borderType: 'dashed',
 								borderWidth: 1
 							}
-						: { color: tokens.ink }
+						: { color: point.highlight ? tokens.accent : tokens.ink }
 				})),
 				label: {
 					show: labels,
