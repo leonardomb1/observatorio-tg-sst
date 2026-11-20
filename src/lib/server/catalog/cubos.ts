@@ -26,6 +26,10 @@ interface CubeDef {
 	extras?: readonly Extra[];
 	/** Formal jobs from cubo_emprego as denominator, valid while every active filter is one of these. */
 	jobs?: readonly Dimension[];
+	/** People employed (PNAD, 4th quarter) as denominator, valid while the only active filter is the state. */
+	people?: boolean;
+	/** Month column, for the month-by-month series across years. */
+	month?: string;
 }
 
 const flagged = (flag: string, status: YearStatus) =>
@@ -74,21 +78,28 @@ const CUBES = {
 			{ key: 'familia', sql: 'cbo_familia', limit: 25 },
 			{ key: 'emitente', sql: 'emitente_cat' }
 		],
-		jobs: ['uf', 'atividade']
+		jobs: ['uf', 'atividade'],
+		people: true,
+		month: 'mes'
 	},
 	beneficios: {
-		table: 'cubo_incapacidade',
+		table: 'beneficios_fato',
 		year: 'ano',
-		where: "natureza = 'acidentaria'",
-		dims: { uf: 'uf_sigla', sexo: 'sexo' },
-		measures: [sum('concessoes'), sum('soma_rmi', 'soma_qt_sm_rmi')],
+		dims: { uf: 'uf_sigla', sexo: 'sexo', idade: 'faixa_etaria', atividade: 'cnae_secao' },
+		measures: [
+			{ key: 'concessoes', sql: 'COUNT(*)' },
+			sum('com_duracao', 'CASE WHEN dias_previstos IS NOT NULL THEN 1 ELSE 0 END'),
+			sum('dias', 'dias_previstos'),
+			sum('despesa', 'despesa_prevista_sm')
+		],
 		status: flagged('NOT ano_completo', 'parcial'),
 		extras: [
 			{ key: 'especie', sql: 'especie_codigo' },
 			{ key: 'grupo', sql: 'grupo_cid' },
 			{ key: 'cid', sql: 'cid10_categoria', limit: 20 }
 		],
-		jobs: ['uf']
+		jobs: ['uf'],
+		month: 'mes'
 	},
 	caminhoneiros: {
 		table: 'cubo_prf',
@@ -124,6 +135,7 @@ const CUBES = {
 		},
 		measures: [sum('notificacoes'), sum('com_cat'), sum('cat_informada'), sum('obitos')],
 		status: flagged('preliminar', 'provisorio'),
+		people: true,
 		extras: [{ key: 'situacao', sql: 'situacao_trabalho' }]
 	},
 	'mortes-no-sus': {
@@ -139,6 +151,7 @@ const CUBES = {
 		},
 		measures: [sum('obitos')],
 		status: flagged('preliminar', 'provisorio'),
+		people: true,
 		extras: [{ key: 'causa', sql: 'grupo_causa' }]
 	},
 	rotatividade: {
@@ -166,6 +179,8 @@ export interface Slice {
 	values: Record<string, number | null>;
 	/** Formal jobs behind the slice, when the cube has a job denominator for the active filters. */
 	jobs: number | null;
+	/** People employed behind the slice (PNAD), when the cube has that denominator for the active filters. */
+	people: number | null;
 }
 
 interface YearSlice extends Slice {
@@ -184,6 +199,10 @@ export interface CubeView {
 	ignored: Dimension[];
 	/** Whether the slices carry formal jobs. */
 	rated: boolean;
+	/** Whether the year and state slices carry people employed. */
+	perPerson: boolean;
+	/** Month by month across all years, oldest first; empty when the cube has no month. */
+	months: (Slice & { year: number; month: number })[];
 	slices: Partial<Record<Dimension, Slice[]>>;
 	extras: Record<string, Slice[]>;
 }
@@ -260,11 +279,49 @@ async function jobsBy(
 	return new Map(result.map((row) => [String(row.chave), row.vinculos]));
 }
 
+const STATES = 27;
+
+const PeopleRow = z.object({
+	chave: z.union([z.string(), z.number()]).nullable(),
+	ocupados: z.number().nullable()
+});
+
+/** People employed from the PNAD by year or by state; a national total needs every state. */
+async function peopleBy(
+	query: Query,
+	column: 'ano' | 'uf_sigla',
+	uf: string | null,
+	year: number | null
+) {
+	const where = ['c.ocupados_mil IS NOT NULL'];
+	const params: Param[] = [];
+	if (uf && column === 'ano') {
+		where.push('u.uf_sigla = ?');
+		params.push(uf);
+	}
+	if (year !== null) {
+		where.push('c.ano = ?');
+		params.push(year);
+	}
+	const result = await rows(
+		query,
+		PeopleRow,
+		`SELECT ${column === 'ano' ? 'c.ano' : 'u.uf_sigla'} AS chave, SUM(c.ocupados_mil) * 1000 AS ocupados
+		FROM cobertura_denominador_uf c JOIN dim_uf u ON u.uf_nome = c.uf
+		WHERE ${where.join(' AND ')} GROUP BY ${column === 'ano' ? 'c.ano' : 'u.uf_sigla'}
+		${column === 'ano' && !uf ? `HAVING COUNT(*) = ${String(STATES)}` : ''}`,
+		params
+	);
+	return new Map(result.map((row) => [String(row.chave), row.ocupados]));
+}
+
 async function load(query: Query, cube: CubeKey, requested: number | null, selection: Selection) {
 	const def: CubeDef = CUBES[cube];
 	const ignored = (Object.keys(selection) as Dimension[]).filter((key) => !(key in def.dims));
 	const active = (Object.keys(selection) as Dimension[]).filter((key) => key in def.dims);
 	const rated = def.jobs !== undefined && active.every((key) => def.jobs?.includes(key));
+	const perPerson = def.people === true && active.every((key) => key === 'uf');
+	const uf = selection.uf?.value ?? null;
 	const select = def.measures.map((measure) => `${measure.sql} AS ${measure.key}`).join(', ');
 
 	const all = predicates(def, selection, null);
@@ -276,13 +333,17 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 		GROUP BY ${def.year} ORDER BY ${def.year}`,
 		all.params
 	);
-	const jobsByYear = rated ? await jobsBy(query, 'ano', selection, null, null) : null;
+	const [jobsByYear, peopleByYear] = await Promise.all([
+		rated ? jobsBy(query, 'ano', selection, null, null) : null,
+		perPerson ? peopleBy(query, 'ano', uf, null) : null
+	]);
 	const years: YearSlice[] = series.map((row) => ({
 		year: row.ano,
 		status: row.status,
 		key: String(row.ano),
 		values: toValues(def, row),
-		jobs: jobsByYear?.get(String(row.ano)) ?? null
+		jobs: jobsByYear?.get(String(row.ano)) ?? null,
+		people: peopleByYear?.get(String(row.ano)) ?? null
 	}));
 	const available = years.filter((row) => (row.values[def.measures[0]?.key ?? ''] ?? 0) > 0);
 	const chosen =
@@ -301,7 +362,7 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 		const where = predicates(def, selection, skip);
 		where.sql.push(`${def.year} = ?`);
 		where.params.push(chosen.year);
-		const [result, jobs] = await Promise.all([
+		const [result, jobs, people] = await Promise.all([
 			rows(
 				query,
 				z.object({ chave: z.union([z.string(), z.number()]).nullable(), ...measureSchema(def) }),
@@ -310,20 +371,42 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 				${limit ? `ORDER BY ${first} DESC LIMIT ${String(limit)}` : ''}`,
 				where.params
 			),
-			rated && jobColumn ? jobsBy(query, jobColumn, selection, skip, chosen.year) : null
+			rated && jobColumn ? jobsBy(query, jobColumn, selection, skip, chosen.year) : null,
+			perPerson && skip === 'uf' ? peopleBy(query, 'uf_sigla', null, chosen.year) : null
 		]);
 		return result.map((row) => {
 			const key = row.chave === null ? null : String(row.chave);
 			return {
 				key,
 				values: toValues(def, row),
-				jobs: key === null ? null : (jobs?.get(key) ?? null)
+				jobs: key === null ? null : (jobs?.get(key) ?? null),
+				people: key === null ? null : (people?.get(key) ?? null)
 			};
 		});
 	};
 
+	const monthly = async () => {
+		if (!def.month) return [];
+		const result = await rows(
+			query,
+			z.object({ ano: z.number().int(), mes: z.number().int(), ...measureSchema(def) }),
+			`SELECT ${def.year} AS ano, ${def.month} AS mes, ${select} FROM ${def.table}
+			${all.sql.length ? `WHERE ${all.sql.join(' AND ')}` : ''}
+			GROUP BY ${def.year}, ${def.month} ORDER BY ${def.year}, ${def.month}`,
+			all.params
+		);
+		return result.map((row) => ({
+			year: row.ano,
+			month: row.mes,
+			key: `${String(row.ano)}-${String(row.mes)}`,
+			values: toValues(def, row),
+			jobs: null,
+			people: null
+		}));
+	};
+
 	const dims = Object.entries(def.dims) as [Dimension, string][];
-	const [dimSlices, extraSlices] = await Promise.all([
+	const [dimSlices, extraSlices, months] = await Promise.all([
 		Promise.all(
 			dims.map(([key, column]) =>
 				slice(
@@ -334,7 +417,8 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 				)
 			)
 		),
-		Promise.all((def.extras ?? []).map((extra) => slice(extra.sql, null, null, extra.limit)))
+		Promise.all((def.extras ?? []).map((extra) => slice(extra.sql, null, null, extra.limit))),
+		monthly()
 	]);
 	return {
 		cube,
@@ -344,6 +428,8 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 		years,
 		ignored,
 		rated,
+		perPerson,
+		months,
 		slices: Object.fromEntries(dims.map(([key], index) => [key, dimSlices[index] ?? []])),
 		extras: Object.fromEntries(
 			(def.extras ?? []).map((extra, index) => [extra.key, extraSlices[index] ?? []])

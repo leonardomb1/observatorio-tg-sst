@@ -226,3 +226,36 @@ export function compareLines(
 		}
 	};
 }
+
+/** One long series over many periods, such as months across years, with the axis thinned by ECharts. */
+export function timeLine(
+	tokens: ChartTokens,
+	labels: readonly string[],
+	values: readonly (number | null)[],
+	format: (value: number) => string
+): EChartsCoreOption {
+	return {
+		grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+		xAxis: {
+			type: 'category',
+			data: [...labels],
+			boundaryGap: false,
+			axisLabel: { color: tokens.ink2, hideOverlap: true }
+		},
+		yAxis: { type: 'value', axisLabel: { formatter: (value: number) => format(value) } },
+		series: [
+			{
+				type: 'line',
+				data: [...values],
+				symbol: 'none',
+				connectNulls: false,
+				lineStyle: { color: tokens.ink, width: 1.5 },
+				itemStyle: { color: tokens.ink }
+			}
+		],
+		tooltip: {
+			trigger: 'axis',
+			valueFormatter: (value: unknown) => (typeof value === 'number' ? format(value) : '—')
+		}
+	};
+}

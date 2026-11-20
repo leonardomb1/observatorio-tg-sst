@@ -1,4 +1,4 @@
-import { formatDecimal, formatInteger, formatPercent } from './format.ts';
+import { formatCompact, formatDecimal, formatInteger, formatPercent } from './format.ts';
 import type { Slice } from './server/catalog/cubos.ts';
 
 /** Portuguese plurals in -ões here are all feminine: notificações, concessões, admissões. */
@@ -97,5 +97,58 @@ export function perThousand(
 		},
 		format: (value) => formatDecimal(value, 1),
 		additive: false
+	};
+}
+
+/** Per 100 thousand people employed (PNAD); null where the slice has no population. */
+export function perPeople(key: string, label: string, noun: string, unit: string): Metric {
+	return {
+		noun,
+		of: ofThe(noun),
+		label,
+		unit,
+		value: (slice) => {
+			const value = slice.values[key];
+			return value == null || !slice.people ? null : (value * 100_000) / slice.people;
+		},
+		format: (value) => formatDecimal(value, 1),
+		additive: false
+	};
+}
+
+/** Mean of a summed measure over the count that carries it, e.g. days per grant. */
+export function average(
+	key: string,
+	base: string,
+	label: string,
+	noun: string,
+	unit: string,
+	digits = 0
+): Metric {
+	return {
+		noun,
+		of: ofThe(noun),
+		label,
+		unit,
+		value: (slice) => {
+			const value = slice.values[key];
+			const total = slice.values[base];
+			return value == null || !total ? null : value / total;
+		},
+		format: (value) => formatDecimal(value, digits),
+		additive: false
+	};
+}
+
+/** An additive total shown compact, e.g. "1,2 mi" minimum wages. */
+export function total(key: string, label: string, noun: string, unit: string): Metric {
+	return {
+		noun,
+		of: ofThe(noun),
+		label,
+		unit,
+		value: (slice) => slice.values[key] ?? null,
+		format: formatCompact,
+		additive: true
 	};
 }

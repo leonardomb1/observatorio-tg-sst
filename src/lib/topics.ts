@@ -115,8 +115,8 @@ export const GROUPS: readonly Group[] = [
 				title: 'Benefícios',
 				icon: 'wallet',
 				summary:
-					'Benefícios acidentários concedidos pelo INSS: auxílios, aposentadorias, pensões e auxílio-acidente.',
-				dims: ['uf', 'sexo'],
+					'Benefícios acidentários concedidos pelo INSS: auxílios, aposentadorias, pensões e auxílio-acidente, quanto duram e quanto custam.',
+				dims: ['uf', 'sexo', 'idade', 'atividade'],
 				year: true
 			},
 			{

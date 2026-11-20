@@ -2,7 +2,7 @@
 	import CubePanels from '#lib/components/grupo/CubePanels.svelte';
 	import GroupPage from '#lib/components/grupo/GroupPage.svelte';
 	import StorySection from '#lib/components/StorySection.svelte';
-	import { count, share } from '#lib/metrics.ts';
+	import { count, perPeople, share } from '#lib/metrics.ts';
 	import type { CubeView } from '#lib/server/catalog/cubos.ts';
 	import { topicSource } from '#lib/sources.ts';
 	import { findGroup } from '#lib/topics.ts';
@@ -44,6 +44,18 @@
 		'notificações',
 		'Notificações com CAT emitida, em % das que informam o campo'
 	);
+	const notificationIncidence = perPeople(
+		'notificacoes',
+		'Notificações por 100 mil ocupados',
+		'notificações',
+		'Notificações no SINAN por 100 mil pessoas ocupadas (PNAD, formais e informais)'
+	);
+	const deathIncidence = perPeople(
+		'obitos',
+		'Óbitos por 100 mil ocupados',
+		'óbitos',
+		'Óbitos por acidente de trabalho no SIM por 100 mil pessoas ocupadas (PNAD)'
+	);
 	const simDeaths = count(
 		'obitos',
 		'Óbitos',
@@ -77,9 +89,19 @@
 			view={data.notifications}
 			metric={notifications}
 			parts={[
-				{ kind: 'serie', metrics: [notifications, withCat] },
+				{
+					kind: 'serie',
+					metrics: data.notifications.perPerson
+						? [notifications, notificationIncidence, withCat]
+						: [notifications, withCat]
+				},
 				{ kind: 'dim', dim: 'agravo', metrics: [notifications, withCat] },
-				{ kind: 'mapa', metrics: [notifications, withCat] },
+				{
+					kind: 'mapa',
+					metrics: data.notifications.perPerson
+						? [notificationIncidence, notifications, withCat]
+						: [notifications, withCat]
+				},
 				{
 					kind: 'extra',
 					key: 'situacao',
@@ -103,9 +125,15 @@
 			view={data.deaths}
 			metric={simDeaths}
 			parts={[
-				{ kind: 'serie' },
+				{
+					kind: 'serie',
+					metrics: data.deaths.perPerson ? [simDeaths, deathIncidence] : [simDeaths]
+				},
 				{ kind: 'extra', key: 'causa', title: 'Causa básica' },
-				{ kind: 'mapa' },
+				{
+					kind: 'mapa',
+					metrics: data.deaths.perPerson ? [deathIncidence, simDeaths] : [simDeaths]
+				},
 				{ kind: 'dim', dim: 'sexo' },
 				{ kind: 'dim', dim: 'idade' },
 				{ kind: 'dim', dim: 'raca' },

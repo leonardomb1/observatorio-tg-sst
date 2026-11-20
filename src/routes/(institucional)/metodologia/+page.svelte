@@ -79,6 +79,21 @@
 		recortes que a RAIS oferece; com outros filtros, as seções mostram contagens.
 	</li>
 	<li>
+		<strong>Incidência por ocupados</strong>: acidentes, notificações ou óbitos por 100 mil pessoas
+		ocupadas na PNAD Contínua do 4º trimestre, formais e informais. Só aparece quando o único filtro
+		ativo é o estado, o recorte que a PNAD oferece.
+	</li>
+	<li>
+		<strong>Duração prevista do afastamento</strong>: dias entre o início do auxílio por
+		incapacidade temporária acidentário (B91) e a cessação que o INSS fixa na concessão. Só existe a
+		partir de junho de 2023 e não conta prorrogações.
+	</li>
+	<li>
+		<strong>Despesa prevista</strong>: renda mensal inicial do benefício, em salários mínimos,
+		multiplicada pelos meses previstos de duração. É uma estimativa em salários mínimos, sem
+		reajustes nem prorrogações, a partir de junho de 2023.
+	</li>
+	<li>
 		<strong>Letalidade</strong>: óbitos por mil acidentes do mesmo recorte.
 	</li>
 	<li>

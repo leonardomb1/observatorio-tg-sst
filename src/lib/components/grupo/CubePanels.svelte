@@ -12,6 +12,8 @@
 	export type Part = Common &
 		(
 			| { kind: 'serie' }
+			/** Month by month across all years. */
+			| { kind: 'mensal' }
 			| { kind: 'mapa' }
 			/** Municipalities of the selected state on a map, or the largest of the country without one. */
 			| { kind: 'municipios' }
@@ -32,7 +34,7 @@
 	import { page } from '$app/state';
 	import BrazilMap from '#lib/charts/BrazilMap.svelte';
 	import Chart from '#lib/charts/Chart.svelte';
-	import { columnBars, rankingBars, yearBars } from '#lib/charts/options.ts';
+	import { columnBars, rankingBars, timeLine, yearBars } from '#lib/charts/options.ts';
 	import Panel from '#lib/components/Panel.svelte';
 	import type { Column } from '#lib/csv.ts';
 	import { AGE_BANDS, DIMENSIONS, readFilters, withParams } from '#lib/filters.ts';
@@ -59,6 +61,20 @@
 	/** "Capítulo da CID-10" becomes "capítulo da CID-10", keeping acronyms. */
 	const lowerFirst = (text: string) => text.charAt(0).toLocaleLowerCase('pt-BR') + text.slice(1);
 	const UNKNOWN = 'Não informado';
+	const MONTHS = [
+		'jan',
+		'fev',
+		'mar',
+		'abr',
+		'mai',
+		'jun',
+		'jul',
+		'ago',
+		'set',
+		'out',
+		'nov',
+		'dez'
+	];
 	const TOP = 10;
 	const MUNICIPAL_TOP = 15;
 
@@ -240,6 +256,53 @@
 					/>
 				{/snippet}
 			</Panel>
+		{:else if part.kind === 'mensal'}
+			{@const points = view.months.map((row) => ({
+				period: `${MONTHS[row.month - 1] ?? String(row.month)}/${String(row.year).slice(2)}`,
+				value: measure.value(row)
+			}))}
+			{@const peak = leader(points, (row) => row.value, measure.format)}
+			<div class="wide">
+				<Panel
+					title={peak
+						? `${measure.label} mês a mês; o maior valor foi em ${peak.row.period}`
+						: `${measure.label} mês a mês`}
+					subtitle="{measure.unit}, por mês"
+					{source}
+					columns={[
+						{ key: 'period', label: 'Mês' },
+						{
+							key: 'value',
+							label: measure.label,
+							numeric: true,
+							format: (cell) => (cell === null ? '—' : measure.format(cell as number))
+						}
+					]}
+					rows={points}
+					slug="{slug}-mensal"
+				>
+					{#snippet note()}
+						<p>
+							Os meses mais recentes ainda recebem registros e tendem a subir; quedas no fim da
+							série não são, por si, uma redução.
+						</p>
+					{/snippet}
+					{#snippet chart()}
+						{@render switcher(part, index)}
+						<Chart
+							label="{measure.label} mês a mês."
+							height="16rem"
+							option={(tokens) =>
+								timeLine(
+									tokens,
+									points.map((row) => row.period),
+									points.map((row) => row.value),
+									measure.format
+								)}
+						/>
+					{/snippet}
+				</Panel>
+			</div>
 		{:else if part.kind === 'mapa'}
 			{@const rows = toRows(
 				view.slices.uf ?? [],

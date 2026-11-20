@@ -7,7 +7,7 @@
 	import ScopeNote from '#lib/components/grupo/ScopeNote.svelte';
 	import StorySection from '#lib/components/StorySection.svelte';
 	import { readFilters, type Dimension } from '#lib/filters.ts';
-	import { count, perJobs, perThousand } from '#lib/metrics.ts';
+	import { average, count, perJobs, perPeople, perThousand, total } from '#lib/metrics.ts';
 	import { catSource, topicSource } from '#lib/sources.ts';
 	import { findGroup } from '#lib/topics.ts';
 	import Beneficios from './Beneficios.svelte';
@@ -48,10 +48,22 @@
 		`Óbitos com CAT ${BASE}`,
 		2
 	);
+	const accidentIncidence = perPeople(
+		'acidentes',
+		'Acidentes por 100 mil ocupados',
+		'acidentes',
+		'Acidentes com CAT por 100 mil pessoas ocupadas (PNAD, formais e informais)'
+	);
 	/** Rates first when the filters allow a job denominator, counts otherwise. */
 	const rated = $derived(
 		data.accidents.rated
-			? [accidentRate, deathRate, accidents, deaths]
+			? [
+					accidentRate,
+					deathRate,
+					...(data.accidents.perPerson ? [accidentIncidence] : []),
+					accidents,
+					deaths
+				]
 			: [accidents, deaths, lethality]
 	);
 	const causes = [accidents, deaths, lethality];
@@ -99,6 +111,22 @@
 		'Concessões por 100 mil',
 		'concessões',
 		`Benefícios acidentários concedidos ${BASE}`
+	);
+	const leaveDays = average(
+		'dias',
+		'com_duracao',
+		'Dias previstos (média)',
+		'dias',
+		'Duração prevista média do auxílio temporário acidentário (B91), em dias, de jun/2023 em diante'
+	);
+	const spending = total(
+		'despesa',
+		'Despesa prevista (salários mínimos)',
+		'salários mínimos',
+		'Despesa prevista em salários mínimos: renda mensal inicial × meses previstos, de jun/2023 em diante'
+	);
+	const grantMetrics = $derived(
+		data.benefits.rated ? [grants, grantRate, leaveDays, spending] : [grants, leaveDays, spending]
 	);
 	const benefitLabels = $derived({
 		especie: {
@@ -160,8 +188,11 @@
 					{ kind: 'serie', metrics: [accidents, deaths] },
 					{
 						kind: 'serie',
-						metrics: data.accidents.rated ? [accidentRate, deathRate] : [lethality]
+						metrics: data.accidents.rated
+							? [accidentRate, deathRate, ...(data.accidents.perPerson ? [accidentIncidence] : [])]
+							: [lethality]
 					},
+					{ kind: 'mensal', metrics: [accidents, deaths] },
 					{ kind: 'dim', dim: 'tipo', metrics: causes },
 					{
 						kind: 'extra',
@@ -313,12 +344,36 @@
 				view={data.benefits}
 				metric={grants}
 				parts={[
-					{ kind: 'serie', metrics: data.benefits.rated ? [grants, grantRate] : [grants] },
-					{ kind: 'extra', key: 'especie', title: 'Espécie do benefício' },
-					{ kind: 'mapa', metrics: data.benefits.rated ? [grantRate, grants] : [grants] },
-					{ kind: 'extra', key: 'grupo', title: 'Grupo de diagnóstico' },
-					{ kind: 'extra', key: 'cid', title: 'Diagnóstico (CID-10)', top: 20 },
-					{ kind: 'dim', dim: 'sexo' }
+					{ kind: 'serie', metrics: grantMetrics },
+					{
+						kind: 'extra',
+						key: 'especie',
+						title: 'Espécie do benefício',
+						metrics: [grants, spending]
+					},
+					{ kind: 'mensal', metrics: [grants, spending] },
+					{
+						kind: 'mapa',
+						metrics: data.benefits.rated
+							? [grantRate, grants, leaveDays, spending]
+							: [grants, leaveDays, spending]
+					},
+					{
+						kind: 'extra',
+						key: 'grupo',
+						title: 'Grupo de diagnóstico',
+						metrics: [grants, leaveDays]
+					},
+					{
+						kind: 'extra',
+						key: 'cid',
+						title: 'Diagnóstico (CID-10)',
+						metrics: [grants, leaveDays, spending],
+						top: 20
+					},
+					{ kind: 'dim', dim: 'sexo', metrics: [grants, leaveDays] },
+					{ kind: 'dim', dim: 'idade', metrics: [grants, leaveDays] },
+					{ kind: 'dim', dim: 'atividade', metrics: [grants, leaveDays, spending] }
 				]}
 				source={inssSource}
 				labels={benefitLabels}
