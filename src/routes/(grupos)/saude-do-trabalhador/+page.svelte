@@ -59,14 +59,13 @@
 			view={data.mental}
 			metric={leaves}
 			parts={[
-				{ kind: 'serie' },
-				{ kind: 'serie', metric: recognised },
-				{ kind: 'mapa' },
-				{ kind: 'dim', dim: 'uf', metric: recognised },
-				{ kind: 'dim', dim: 'sexo' },
-				{ kind: 'dim', dim: 'sexo', metric: recognised }
+				{ kind: 'serie', metrics: [leaves, recognised] },
+				{ kind: 'extra', key: 'cid', title: 'Diagnóstico (CID-10)', metrics: [leaves, recognised] },
+				{ kind: 'mapa', metrics: [leaves, recognised] },
+				{ kind: 'dim', dim: 'sexo', metrics: [leaves, recognised] }
 			]}
 			source={topicSource('incapacidade', `concessões de ${span(data.mental)}`)}
+			labels={{ cid: data.cidNames }}
 			slug="afastamentos-mentais"
 		/>
 		<SaudeMental data={data.mentalHealth} />
@@ -78,11 +77,15 @@
 			view={data.notifications}
 			metric={notifications}
 			parts={[
-				{ kind: 'serie' },
-				{ kind: 'extra', key: 'agravo', title: 'Agravo' },
-				{ kind: 'mapa' },
-				{ kind: 'extra', key: 'situacao', title: 'Situação no trabalho' },
-				{ kind: 'extra', key: 'situacao', title: 'Situação no trabalho', metric: withCat },
+				{ kind: 'serie', metrics: [notifications, withCat] },
+				{ kind: 'dim', dim: 'agravo', metrics: [notifications, withCat] },
+				{ kind: 'mapa', metrics: [notifications, withCat] },
+				{
+					kind: 'extra',
+					key: 'situacao',
+					title: 'Situação no trabalho',
+					metrics: [notifications, withCat]
+				},
 				{ kind: 'dim', dim: 'sexo' },
 				{ kind: 'dim', dim: 'idade' },
 				{ kind: 'dim', dim: 'raca' },

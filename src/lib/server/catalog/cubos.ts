@@ -11,6 +11,8 @@ interface Measure {
 interface Extra {
 	key: string;
 	sql: string;
+	/** Keeps only the largest groups by the first measure. */
+	limit?: number;
 }
 
 interface CubeDef {
@@ -38,30 +40,55 @@ const sum = (key: string, column = key): Measure => ({ key, sql: `SUM(${column})
  */
 const CUBES = {
 	acidentes: {
-		table: 'cubo_acidentes',
+		table: 'cat_fato',
 		year: 'ano',
 		dims: {
 			uf: 'uf_sigla',
+			municipio: 'municipio_codigo',
 			sexo: 'sexo',
 			idade: 'faixa_etaria',
 			atividade: 'cnae_secao',
-			ocupacao: 'cbo_grande_grupo'
+			ocupacao: 'cbo_grande_grupo',
+			tipo: 'tipo_acidente',
+			agente: 'agente_familia',
+			lesao: 'natureza_familia',
+			parte: 'parte_familia'
 		},
 		measures: [
-			sum('acidentes'),
-			sum('obitos'),
+			{ key: 'acidentes', sql: 'COUNT(*)' },
+			sum('obitos', 'CASE WHEN obito THEN 1 ELSE 0 END'),
 			sum(
 				'acidentes_base',
-				"CASE WHEN uf_sigla IS NOT NULL AND coalesce(cnae_secao, '') <> 'O' THEN acidentes ELSE 0 END"
+				"CASE WHEN uf_sigla IS NOT NULL AND coalesce(cnae_secao, '') <> 'O' THEN 1 ELSE 0 END"
 			),
 			sum(
 				'obitos_base',
-				"CASE WHEN uf_sigla IS NOT NULL AND coalesce(cnae_secao, '') <> 'O' THEN obitos ELSE 0 END"
+				"CASE WHEN obito AND uf_sigla IS NOT NULL AND coalesce(cnae_secao, '') <> 'O' THEN 1 ELSE 0 END"
 			)
 		],
 		status: 'MAX(ano_status)',
-		extras: [{ key: 'tipo', sql: 'tipo_acidente' }],
+		extras: [
+			{ key: 'mes', sql: 'CAST(mes AS VARCHAR)' },
+			{ key: 'dia', sql: 'CAST(dia_semana AS VARCHAR)' },
+			{ key: 'cid', sql: 'cid10_capitulo' },
+			{ key: 'familia', sql: 'cbo_familia', limit: 25 },
+			{ key: 'emitente', sql: 'emitente_cat' }
+		],
 		jobs: ['uf', 'atividade']
+	},
+	beneficios: {
+		table: 'cubo_incapacidade',
+		year: 'ano',
+		where: "natureza = 'acidentaria'",
+		dims: { uf: 'uf_sigla', sexo: 'sexo' },
+		measures: [sum('concessoes'), sum('soma_rmi', 'soma_qt_sm_rmi')],
+		status: flagged('NOT ano_completo', 'parcial'),
+		extras: [
+			{ key: 'especie', sql: 'especie_codigo' },
+			{ key: 'grupo', sql: 'grupo_cid' },
+			{ key: 'cid', sql: 'cid10_categoria', limit: 20 }
+		],
+		jobs: ['uf']
 	},
 	caminhoneiros: {
 		table: 'cubo_prf',
@@ -81,7 +108,8 @@ const CUBES = {
 			sum('concessoes'),
 			sum('acidentarias', "CASE WHEN natureza = 'acidentaria' THEN concessoes ELSE 0 END")
 		],
-		status: flagged('NOT (ano_completo AND cid_confiavel)', 'parcial')
+		status: flagged('NOT (ano_completo AND cid_confiavel)', 'parcial'),
+		extras: [{ key: 'cid', sql: 'cid10_categoria', limit: 15 }]
 	},
 	'notificacoes-sus': {
 		table: 'cubo_sinan',
@@ -91,14 +119,12 @@ const CUBES = {
 			sexo: 'sexo',
 			idade: 'faixa_etaria',
 			raca: 'raca_cor',
-			ocupacao: 'cbo_grande_grupo'
+			ocupacao: 'cbo_grande_grupo',
+			agravo: 'agravo'
 		},
 		measures: [sum('notificacoes'), sum('com_cat'), sum('cat_informada'), sum('obitos')],
 		status: flagged('preliminar', 'provisorio'),
-		extras: [
-			{ key: 'agravo', sql: 'agravo_nome' },
-			{ key: 'situacao', sql: 'situacao_trabalho' }
-		]
+		extras: [{ key: 'situacao', sql: 'situacao_trabalho' }]
 	},
 	'mortes-no-sus': {
 		table: 'cubo_sim',
@@ -164,12 +190,19 @@ export interface CubeView {
 
 const status = z.enum(['consolidado', 'provisorio', 'parcial']);
 
+/** Without a state, the municipality breakdown keeps the largest ones only. */
+const MUNICIPALITIES_WITHOUT_UF = 30;
+
+/** A breakdown by state drops the municipality too, which would pin it to one state. */
+const skipped = (key: Dimension, skip: Dimension | null) =>
+	key === skip || (skip === 'uf' && key === 'municipio');
+
 function predicates(def: CubeDef, selection: Selection, skip: Dimension | null) {
 	const sql = def.where ? [def.where] : [];
 	const params: Param[] = [];
 	for (const [key, column] of Object.entries(def.dims) as [Dimension, string][]) {
 		const option = selection[key];
-		if (!option || key === skip) continue;
+		if (!option || skipped(key, skip)) continue;
 		sql.push(`${column} = ?`);
 		params.push(option.value);
 	}
@@ -258,7 +291,13 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 		available.at(-1);
 	if (!chosen) throw new Error(`Cubo ${cube} sem dados`);
 
-	const slice = async (column: string, skip: Dimension | null, jobColumn: string | null) => {
+	const first = def.measures[0]?.key ?? '';
+	const slice = async (
+		column: string,
+		skip: Dimension | null,
+		jobColumn: string | null,
+		limit?: number
+	) => {
 		const where = predicates(def, selection, skip);
 		where.sql.push(`${def.year} = ?`);
 		where.params.push(chosen.year);
@@ -267,7 +306,8 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 				query,
 				z.object({ chave: z.union([z.string(), z.number()]).nullable(), ...measureSchema(def) }),
 				`SELECT ${column} AS chave, ${select} FROM ${def.table}
-				WHERE ${where.sql.join(' AND ')} GROUP BY ${column}`,
+				WHERE ${where.sql.join(' AND ')} GROUP BY ${column}
+				${limit ? `ORDER BY ${first} DESC LIMIT ${String(limit)}` : ''}`,
 				where.params
 			),
 			rated && jobColumn ? jobsBy(query, jobColumn, selection, skip, chosen.year) : null
@@ -284,8 +324,17 @@ async function load(query: Query, cube: CubeKey, requested: number | null, selec
 
 	const dims = Object.entries(def.dims) as [Dimension, string][];
 	const [dimSlices, extraSlices] = await Promise.all([
-		Promise.all(dims.map(([key, column]) => slice(column, key, JOB_COLUMNS[key] ?? null))),
-		Promise.all((def.extras ?? []).map((extra) => slice(extra.sql, null, null)))
+		Promise.all(
+			dims.map(([key, column]) =>
+				slice(
+					column,
+					key,
+					JOB_COLUMNS[key] ?? null,
+					key === 'municipio' && !selection.uf ? MUNICIPALITIES_WITHOUT_UF : undefined
+				)
+			)
+		),
+		Promise.all((def.extras ?? []).map((extra) => slice(extra.sql, null, null, extra.limit)))
 	]);
 	return {
 		cube,

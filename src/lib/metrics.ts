@@ -1,10 +1,15 @@
 import { formatDecimal, formatInteger, formatPercent } from './format.ts';
 import type { Slice } from './server/catalog/cubos.ts';
 
+/** Portuguese plurals in -ões here are all feminine: notificações, concessões, admissões. */
+export const ofThe = (noun: string) => (noun.endsWith('ões') ? 'das' : 'dos');
+
 /** How a cube slice becomes the number a panel shows. */
 export interface Metric {
 	/** Lower-case plural noun, as in "a maior parte dos {noun}". */
 	noun: string;
+	/** "dos" or "das", agreeing with the noun. */
+	of: string;
 	/** Column header and chart label. */
 	label: string;
 	/** Measure, unit and denominator, for panel subtitles. */
@@ -18,6 +23,7 @@ export interface Metric {
 export function count(key: string, label: string, noun: string, unit: string): Metric {
 	return {
 		noun,
+		of: ofThe(noun),
 		label,
 		unit,
 		value: (slice) => slice.values[key] ?? null,
@@ -36,6 +42,7 @@ export function perJobs(
 ): Metric {
 	return {
 		noun,
+		of: ofThe(noun),
 		label,
 		unit,
 		value: (slice) => {
@@ -57,6 +64,7 @@ export function share(
 ): Metric {
 	return {
 		noun,
+		of: ofThe(noun),
 		label,
 		unit,
 		value: (slice) => {
@@ -79,6 +87,7 @@ export function perThousand(
 ): Metric {
 	return {
 		noun,
+		of: ofThe(noun),
 		label,
 		unit,
 		value: (slice) => {

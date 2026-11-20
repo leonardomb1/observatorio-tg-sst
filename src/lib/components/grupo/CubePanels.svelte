@@ -2,19 +2,29 @@
 	import type { Dimension } from '#lib/filters.ts';
 	import type { Metric } from '#lib/metrics.ts';
 
-	export type Part =
-		| { kind: 'serie'; metric?: Metric }
-		| { kind: 'mapa'; metric?: Metric }
-		| { kind: 'dim'; dim: Dimension; metric?: Metric }
-		| {
-				kind: 'extra';
-				key: string;
-				/** Name of the breakdown, as in "por {title}". */
-				title: string;
-				/** Ordinal categories in display order; otherwise ranked by value. */
-				order?: readonly string[];
-				metric?: Metric;
-		  };
+	interface Common {
+		/** The panel's measure; with more than one, the panel offers a switch between them. */
+		metrics?: readonly Metric[];
+		/** Bars drawn at most; the table keeps every row. */
+		top?: number;
+	}
+
+	export type Part = Common &
+		(
+			| { kind: 'serie' }
+			| { kind: 'mapa' }
+			/** Municipalities of the selected state on a map, or the largest of the country without one. */
+			| { kind: 'municipios' }
+			| { kind: 'dim'; dim: Dimension }
+			| {
+					kind: 'extra';
+					key: string;
+					/** Name of the breakdown, as in "por {title}". */
+					title: string;
+					/** Ordinal categories in display order; otherwise ranked by value. */
+					order?: readonly string[];
+			  }
+		);
 </script>
 
 <script lang="ts">
@@ -39,17 +49,29 @@
 		source: { name: string; href: string; updatedAt: string };
 		/** Prefix of the CSV file names. */
 		slug: string;
+		/** Names for keys the datamart stores as codes, by dimension or extra key. */
+		labels?: Record<string, Record<string, string>>;
 	}
 
-	let { view, metric, parts, source, slug }: Props = $props();
+	let { view, metric, parts, source, slug, labels = {} }: Props = $props();
 
 	const selection = $derived(readFilters(page.url.searchParams).selection);
+	/** "Capítulo da CID-10" becomes "capítulo da CID-10", keeping acronyms. */
+	const lowerFirst = (text: string) => text.charAt(0).toLocaleLowerCase('pt-BR') + text.slice(1);
 	const UNKNOWN = 'Não informado';
+	const TOP = 10;
+	const MUNICIPAL_TOP = 15;
 
-	const labelOf = (dim: Dimension, key: string | null) =>
-		key === null
-			? UNKNOWN
-			: (DIMENSIONS[dim].options.find((option) => option.value === key)?.label ?? key);
+	let chosen = $state<Record<number, number>>({});
+	const measureOf = (part: Part, index: number) => part.metrics?.[chosen[index] ?? 0] ?? metric;
+
+	const nameOf = (key: string, code: string | null) => {
+		if (code === null) return UNKNOWN;
+		const named = labels[key]?.[code];
+		if (named) return named;
+		const dim = DIMENSIONS[key as Dimension] as (typeof DIMENSIONS)[Dimension] | undefined;
+		return dim?.options.find((option) => option.value === code)?.label ?? code;
+	};
 
 	interface Row {
 		key: string | null;
@@ -93,6 +115,10 @@
 			.filter((row): row is Row => row !== undefined);
 	}
 
+	/** The largest rows up to `limit`, plus the selected one wherever it ranks. */
+	const cut = (rows: readonly Row[], limit: number | undefined) =>
+		limit === undefined ? rows : rows.filter((row, position) => position < limit || row.highlight);
+
 	/** "Parda: 45,2% dos óbitos", or the highest value when shares do not apply. */
 	function finding(rows: readonly Row[], measure: Metric, fallback: string) {
 		const lead = leader(
@@ -103,7 +129,7 @@
 		if (lead?.row.value == null) return fallback;
 		const names = listNames([lead.row, ...lead.tied].map((row) => row.label));
 		if (measure.additive && lead.row.share !== null && !lead.tied.length) {
-			return `${names}: ${formatPercent(lead.row.share)} dos ${measure.noun}`;
+			return `${names}: ${formatPercent(lead.row.share)} ${measure.of} ${measure.noun}`;
 		}
 		const label = measure.label.toLocaleLowerCase('pt-BR');
 		return lead.tied.length
@@ -145,21 +171,36 @@
 		return `${measure.label}: ${measure.format(current.value)} em ${view.year}${change}`;
 	}
 
-	function selectUf(uf: string) {
-		const option = DIMENSIONS.uf.options.find((each) => each.value === uf);
-		if (!option) return;
+	function select(changes: Record<string, string | null>) {
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- same page, only the search changes
-		void goto(withParams(page.url, { uf: option.slug }), { replace: true, reset: false });
+		void goto(withParams(page.url, changes), { replace: true, reset: false });
 	}
 
-	const TOP = 10;
+	function selectUf(uf: string) {
+		const option = DIMENSIONS.uf.options.find((each) => each.value === uf);
+		if (option) select({ uf: option.slug, municipio: null });
+	}
 </script>
+
+{#snippet switcher(part: Part, index: number)}
+	{#if part.metrics && part.metrics.length > 1}
+		<div class="switch" role="group" aria-label="Medida do painel">
+			{#each part.metrics as option, position (option.label)}
+				<button
+					type="button"
+					aria-pressed={(chosen[index] ?? 0) === position}
+					onclick={() => (chosen[index] = position)}>{option.label}</button
+				>
+			{/each}
+		</div>
+	{/if}
+{/snippet}
 
 <ScopeNote ignored={view.ignored} requestedYear={view.requestedYear} shownYear={view.year} />
 
 <div class="l-grid panels">
 	{#each parts as part, index (index)}
-		{@const measure = part.metric ?? metric}
+		{@const measure = measureOf(part, index)}
 		{#if part.kind === 'serie'}
 			{@const points = view.years.map((row) => ({
 				year: row.year,
@@ -191,6 +232,7 @@
 					</p>
 				{/snippet}
 				{#snippet chart()}
+					{@render switcher(part, index)}
 					<Chart
 						label="{measure.label} por ano; anos fechados em barras escuras."
 						height="18rem"
@@ -202,11 +244,11 @@
 			{@const rows = toRows(
 				view.slices.uf ?? [],
 				measure,
-				(key) => labelOf('uf', key),
+				(key) => nameOf('uf', key),
 				selection.uf?.value ?? null
 			)}
 			{@const sorted = ranked(rows)}
-			{@const top = sorted.filter((row, position) => position < TOP || row.highlight)}
+			{@const top = cut(sorted, part.top ?? TOP)}
 			<div class="wide">
 				<Panel
 					title={finding(rows, measure, `${measure.label} por estado`)}
@@ -222,6 +264,7 @@
 						<p>Clique em um estado para filtrar a página inteira por ele.</p>
 					{/snippet}
 					{#snippet chart()}
+						{@render switcher(part, index)}
 						<div class="split">
 							<BrazilMap
 								scope={{ kind: 'states' }}
@@ -252,23 +295,89 @@
 					{/snippet}
 				</Panel>
 			</div>
+		{:else if part.kind === 'municipios'}
+			{@const uf = selection.uf?.value ?? null}
+			{@const rows = toRows(
+				view.slices.municipio ?? [],
+				measure,
+				(key) => nameOf('municipio', key),
+				selection.municipio?.value ?? null
+			)}
+			{@const sorted = ranked(rows)}
+			{@const top = cut(sorted, part.top ?? MUNICIPAL_TOP)}
+			<div class="wide">
+				<Panel
+					title={finding(rows, measure, `${measure.label} por município`)}
+					subtitle="{measure.unit}, por município do empregador, {uf
+						? (selection.uf?.label ?? uf)
+						: 'os maiores do país'}, {view.year}"
+					status={view.status}
+					{period}
+					{source}
+					columns={sliceColumns('Município', measure)}
+					rows={sorted}
+					slug="{slug}-municipios-{view.year}"
+				>
+					{#snippet note()}
+						{#if uf}
+							<p>Clique em um município para filtrar a página por ele.</p>
+						{:else}
+							<p>Escolha um estado para ver o mapa de todos os seus municípios.</p>
+						{/if}
+					{/snippet}
+					{#snippet chart()}
+						{@render switcher(part, index)}
+						<div class="split">
+							{#if uf}
+								<BrazilMap
+									scope={{ kind: 'municipalities', uf }}
+									areas={rows
+										.filter((row) => row.key !== null)
+										.map((row) => ({ key: row.key ?? '', label: row.label, value: row.value }))}
+									format={measure.format}
+									label="Mapa de {measure.label.toLocaleLowerCase(
+										'pt-BR'
+									)} por município em {view.year}; clique em um município para filtrar a página."
+									onselect={(code) => {
+										select({ municipio: code });
+									}}
+									missing="Sem registro"
+								/>
+							{/if}
+							<Chart
+								label="{measure.label} nos municípios de maior valor em {view.year}."
+								height="{top.length * 1.6 + 1}rem"
+								option={(tokens) =>
+									rankingBars(
+										tokens,
+										top.map((row) => ({
+											label: row.label,
+											value: row.value,
+											highlight: row.highlight
+										})),
+										measure.format
+									)}
+							/>
+						</div>
+					{/snippet}
+				</Panel>
+			</div>
 		{:else}
+			{@const key = part.kind === 'dim' ? part.dim : part.key}
 			{@const dim = part.kind === 'dim' ? part.dim : null}
-			{@const slices = dim
-				? (view.slices[dim] ?? [])
-				: (view.extras[part.kind === 'extra' ? part.key : ''] ?? [])}
+			{@const slices = dim ? (view.slices[dim] ?? []) : (view.extras[key] ?? [])}
 			{@const title = dim ? DIMENSIONS[dim].label : part.kind === 'extra' ? part.title : ''}
 			{@const rows = toRows(
 				slices,
 				measure,
-				(key) => (dim ? labelOf(dim, key) : (key ?? UNKNOWN)),
+				(code) => nameOf(key, code),
 				dim ? (selection[dim]?.value ?? null) : null
 			)}
 			{@const order = dim === 'idade' ? AGE_BANDS : part.kind === 'extra' ? part.order : undefined}
-			{@const shown = order ? ordered(rows, order) : ranked(rows)}
+			{@const shown = order ? ordered(rows, order) : cut(ranked(rows), part.top)}
 			<Panel
-				title={finding(rows, measure, `${measure.label} por ${title.toLocaleLowerCase('pt-BR')}`)}
-				subtitle="{measure.unit}, por {title.toLocaleLowerCase('pt-BR')}, {view.year}"
+				title={finding(rows, measure, `${measure.label} por ${lowerFirst(title)}`)}
+				subtitle="{measure.unit}, por {lowerFirst(title)}, {view.year}"
 				status={view.status}
 				{period}
 				{source}
@@ -276,18 +385,20 @@
 				rows={order
 					? [...shown, ...rows.filter((row) => !shown.includes(row))]
 					: ranked(rows).concat(rows.filter((row) => row.key === null || row.value === null))}
-				slug="{slug}-{dim ?? (part.kind === 'extra' ? part.key : '')}-{view.year}"
+				slug="{slug}-{key}-{view.year}"
 			>
 				{#snippet note()}
 					<p>
-						O gráfico omite os registros sem {title.toLocaleLowerCase('pt-BR')} informado; a tabela os
-						traz.
+						O gráfico omite os registros sem {lowerFirst(title)} informado{part.top
+							? ` e mostra os ${String(part.top)} maiores`
+							: ''}; a tabela traz todos.
 					</p>
 				{/snippet}
 				{#snippet chart()}
+					{@render switcher(part, index)}
 					{#if order}
 						<Chart
-							label="{measure.label} por {title.toLocaleLowerCase('pt-BR')} em {view.year}."
+							label="{measure.label} por {lowerFirst(title)} em {view.year}."
 							height="16rem"
 							option={(tokens) =>
 								columnBars(
@@ -299,9 +410,7 @@
 						/>
 					{:else}
 						<Chart
-							label="{measure.label} por {title.toLocaleLowerCase(
-								'pt-BR'
-							)} em {view.year}, em ordem decrescente."
+							label="{measure.label} por {lowerFirst(title)} em {view.year}, em ordem decrescente."
 							height="{Math.max(shown.length, 2) * 1.8 + 1}rem"
 							option={(tokens) =>
 								rankingBars(
@@ -336,5 +445,29 @@
 		grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
 		gap: var(--space-5);
 		align-items: start;
+	}
+
+	.switch {
+		display: inline-flex;
+		flex-wrap: wrap;
+		margin-block-end: var(--space-3);
+		padding: 2px;
+		border: var(--border);
+		border-radius: var(--radius);
+		font-size: var(--text-xs);
+	}
+
+	.switch button {
+		padding: var(--space-1) var(--space-2);
+		border: 0;
+		border-radius: var(--radius);
+		background: none;
+		color: var(--ink-2);
+		font: inherit;
+	}
+
+	.switch button[aria-pressed='true'] {
+		background: var(--surface);
+		color: var(--ink);
 	}
 </style>

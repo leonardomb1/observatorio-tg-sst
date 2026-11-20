@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { DIMENSION_KEYS } from '#lib/filters.ts';
+	import { DIMENSION_KEYS, type Dimension, type Option } from '#lib/filters.ts';
 	import type { Group } from '#lib/topics.ts';
 	import Icon from '../Icon.svelte';
 	import FilterBar from './FilterBar.svelte';
@@ -9,10 +9,12 @@
 		group: Group;
 		/** Years any section has, newest first; empty hides the year filter. */
 		years: readonly number[];
+		/** Options of the long lists, loaded by the page. */
+		options?: Partial<Record<Dimension, readonly Option[]>>;
 		children: Snippet;
 	}
 
-	let { group, years, children }: Props = $props();
+	let { group, years, options = {}, children }: Props = $props();
 
 	const dims = $derived(
 		DIMENSION_KEYS.filter((key) => group.sections.some((section) => section.dims.includes(key)))
@@ -38,7 +40,7 @@
 	</header>
 
 	{#if dims.length || years.length}
-		<FilterBar {dims} {years} />
+		<FilterBar {dims} {years} {options} />
 	{/if}
 
 	<div class="story" data-story>

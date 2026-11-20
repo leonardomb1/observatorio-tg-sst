@@ -7,9 +7,21 @@ import { UF_NAMES } from './uf.ts';
  * whole site. A section whose source lacks a dimension ignores that filter and
  * says so.
  */
-export type Dimension = 'uf' | 'sexo' | 'idade' | 'raca' | 'atividade' | 'ocupacao';
+export type Dimension =
+	| 'uf'
+	| 'municipio'
+	| 'sexo'
+	| 'idade'
+	| 'raca'
+	| 'atividade'
+	| 'ocupacao'
+	| 'tipo'
+	| 'agente'
+	| 'lesao'
+	| 'parte'
+	| 'agravo';
 
-interface Option {
+export interface Option {
 	/** Value in the URL. */
 	slug: string;
 	label: string;
@@ -22,7 +34,15 @@ interface DimensionDef {
 	/** Noun for "o filtro de …" notices. */
 	noun: string;
 	options: readonly Option[];
+	/**
+	 * Accepts a value outside `options`, for long lists the page loads from the
+	 * datamart (municipalities, causal agents); the value is then its own label
+	 * until the page names it.
+	 */
+	accepts?: (value: string) => boolean;
 }
+
+const plainValue = (value: string) => value.length > 0 && value.length <= 160;
 
 const same = (labels: readonly string[], slug: (label: string) => string) =>
 	labels.map((label) => ({ slug: slug(label), label, value: label }));
@@ -115,11 +135,59 @@ export const DIMENSIONS: Record<Dimension, DimensionDef> = {
 		noun: 'raça/cor',
 		options: same(['Branca', 'Preta', 'Parda', 'Amarela', 'Indígena'], plainSlug)
 	},
+	municipio: {
+		label: 'Município',
+		noun: 'município',
+		options: [],
+		accepts: (value) => /^\d{6}$/.test(value)
+	},
 	atividade: { label: 'Atividade', noun: 'atividade', options: CNAE_SECTIONS },
-	ocupacao: { label: 'Ocupação', noun: 'ocupação', options: CBO_GROUPS }
+	ocupacao: { label: 'Ocupação', noun: 'ocupação', options: CBO_GROUPS },
+	tipo: {
+		label: 'Tipo de acidente',
+		noun: 'tipo de acidente',
+		options: same(['Típico', 'Trajeto', 'Doença'], plainSlug)
+	},
+	agente: { label: 'Agente causador', noun: 'agente causador', options: [], accepts: plainValue },
+	lesao: {
+		label: 'Natureza da lesão',
+		noun: 'natureza da lesão',
+		options: [],
+		accepts: plainValue
+	},
+	parte: { label: 'Parte do corpo', noun: 'parte do corpo', options: [], accepts: plainValue },
+	agravo: {
+		label: 'Agravo (SINAN)',
+		noun: 'agravo do SINAN',
+		options: [
+			['ACGR', 'Acidente de trabalho grave'],
+			['ACBI', 'Acidente com material biológico'],
+			['LERD', 'LER/DORT'],
+			['MENT', 'Transtornos mentais'],
+			['IEXO', 'Intoxicação exógena'],
+			['PAIR', 'Perda auditiva por ruído'],
+			['DERM', 'Dermatoses ocupacionais'],
+			['CANC', 'Câncer relacionado ao trabalho'],
+			['PNEU', 'Pneumoconioses']
+		].map(([code = '', name = '']) => ({ slug: code.toLowerCase(), label: name, value: code }))
+	}
 };
 
-export const DIMENSION_KEYS = Object.keys(DIMENSIONS) as Dimension[];
+/** Order of the filter bar. */
+export const DIMENSION_KEYS: readonly Dimension[] = [
+	'uf',
+	'municipio',
+	'sexo',
+	'idade',
+	'raca',
+	'atividade',
+	'ocupacao',
+	'tipo',
+	'agente',
+	'lesao',
+	'parte',
+	'agravo'
+];
 
 /** Active filters by dimension, as datamart values. */
 export type Selection = Partial<Record<Dimension, Option>>;
@@ -139,10 +207,14 @@ type Location = Pick<URL, 'pathname' | 'search' | 'hash'> & { searchParams: Para
 export function readFilters(params: Params): Filters {
 	const selection: Selection = {};
 	for (const key of DIMENSION_KEYS) {
-		const slug = params.get(key)?.toLowerCase();
-		const option = DIMENSIONS[key].options.find((each) => each.slug === slug);
+		const raw = params.get(key)?.trim();
+		if (!raw) continue;
+		const def = DIMENSIONS[key];
+		const option = def.options.find((each) => each.slug === raw.toLowerCase());
 		if (option) selection[key] = option;
+		else if (def.accepts?.(raw)) selection[key] = { slug: raw, label: raw, value: raw };
 	}
+	if (selection.municipio && !selection.uf) delete selection.municipio;
 	const year = Number(params.get('ano'));
 	return { year: Number.isInteger(year) && year > 1990 ? year : null, selection };
 }
@@ -158,10 +230,15 @@ export function withParams(url: Location, changes: Record<string, string | null>
 	return `${url.pathname}${search ? `?${search}` : ''}${url.hash}`;
 }
 
-/** Only the site-wide state, the state, carried by links between pages. */
+/** Only the site-wide place, state and municipality, carried by links between pages. */
 export function globalSearch(url: Location): string {
-	const uf = url.searchParams.get('uf');
-	return uf ? `?uf=${encodeURIComponent(uf)}` : '';
+	const params = new URLSearchParams();
+	for (const key of ['uf', 'municipio']) {
+		const value = url.searchParams.get(key);
+		if (value) params.set(key, value);
+	}
+	const search = params.toString();
+	return search ? `?${search}` : '';
 }
 
 /** "o estado e a raça/cor", for notices about filters a section ignores. */

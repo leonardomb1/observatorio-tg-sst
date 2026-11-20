@@ -2,7 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Combobox from '#lib/components/Combobox.svelte';
-	import { DIMENSIONS, readFilters, withParams, type Dimension } from '#lib/filters.ts';
+	import {
+		DIMENSIONS,
+		readFilters,
+		withParams,
+		type Dimension,
+		type Option
+	} from '#lib/filters.ts';
 	import Icon from '../Icon.svelte';
 
 	interface Props {
@@ -10,16 +16,23 @@
 		dims: readonly Dimension[];
 		/** Years any section has, newest first. */
 		years: readonly number[];
+		/** Options of the long lists loaded from the datamart; a dimension without any is hidden. */
+		options?: Partial<Record<Dimension, readonly Option[]>>;
 	}
 
-	let { dims, years }: Props = $props();
+	let { dims, years, options = {} }: Props = $props();
+
+	const choices = (dim: Dimension) => options[dim] ?? DIMENSIONS[dim].options;
+	const shown = $derived(dims.filter((dim) => choices(dim).length > 0));
 
 	const filters = $derived(readFilters(page.url.searchParams));
 	const active = $derived(Object.keys(filters.selection).length > 0 || filters.year !== null);
 
+	/** A new state drops the municipality, which belongs to the previous one. */
 	function set(key: string, value: string | null) {
+		const changes = key === 'uf' ? { uf: value, municipio: null } : { [key]: value };
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- same page, only the search changes
-		void goto(withParams(page.url, { [key]: value }), { replace: true, reset: false });
+		void goto(withParams(page.url, changes), { replace: true, reset: false });
 	}
 
 	const cleared = $derived(
@@ -45,12 +58,12 @@
 			}}
 		/>
 	</div>
-	{#each dims as dim (dim)}
+	{#each shown as dim (dim)}
 		<div class="field">
 			<Combobox
 				label={DIMENSIONS[dim].label}
 				placeholder={dim === 'uf' ? 'Brasil' : 'Todos'}
-				options={DIMENSIONS[dim].options.map((option) => ({
+				options={choices(dim).map((option) => ({
 					value: option.slug,
 					label: option.label,
 					...(dim === 'atividade' || dim === 'ocupacao' ? { hint: option.value } : {})

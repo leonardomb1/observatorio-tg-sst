@@ -1,14 +1,13 @@
 import { calendar } from './catalog/anos.ts';
 import { benefitsByYear } from './catalog/beneficios.ts';
 import { cubeView } from './catalog/cubos.ts';
-import { agentFamilies, bodyPartFamilies, injuryFamilies } from './catalog/causas.ts';
 import { socialProfile } from './catalog/desigualdade.ts';
 import { slaveRegister } from './catalog/escravidao.ts';
+import { catOptions, cidNames, municipalities } from './catalog/opcoes.ts';
 import { europeComparison } from './catalog/europa.ts';
 import { mentalHealth } from './catalog/incapacidade.ts';
 import { usaSeries, worldComparison } from './catalog/internacional.ts';
 import { informality } from './catalog/informalidade.ts';
-import { lethalityByType } from './catalog/perfil.ts';
 import { highwayDrivers } from './catalog/rodovias.ts';
 import { turnover } from './catalog/rotatividade.ts';
 import { healthDeaths } from './catalog/sim.ts';
@@ -30,13 +29,12 @@ export const warehouse = {
 	ufSeries: ufSeries(query),
 	municipalRates: municipalRates(query),
 	sectorRanking: sectorRanking(query),
-	lethalityByType: () => lethalityByType(query),
-	agentFamilies: agentFamilies(query),
-	bodyPartFamilies: bodyPartFamilies(query),
-	injuryFamilies: injuryFamilies(query),
 	benefitsByYear: () => benefitsByYear(query),
 	socialProfile: socialProfile(query),
 	cubeView: cubeView(query),
+	catOptions: () => catOptions(query),
+	municipalities: () => municipalities(query),
+	cidNames: () => cidNames(query),
 	worldComparison: () => worldComparison(query),
 	usaSeries: () => usaSeries(query),
 	informality: () => informality(query),

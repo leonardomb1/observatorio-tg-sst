@@ -9,7 +9,7 @@
 	import type { PageData } from './$types';
 
 	interface Props {
-		benefits: Awaited<PageData['benefits']>;
+		benefits: Awaited<PageData['benefitsHistory']>;
 	}
 
 	let { benefits }: Props = $props();

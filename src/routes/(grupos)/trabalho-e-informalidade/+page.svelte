@@ -6,7 +6,7 @@
 	import StorySection from '#lib/components/StorySection.svelte';
 	import { readFilters, type Dimension } from '#lib/filters.ts';
 	import { formatDecimal } from '#lib/format.ts';
-	import { count, type Metric } from '#lib/metrics.ts';
+	import { count, ofThe, type Metric } from '#lib/metrics.ts';
 	import { topicSource } from '#lib/sources.ts';
 	import { findGroup } from '#lib/topics.ts';
 	import Informalidade from './Informalidade.svelte';
@@ -24,6 +24,7 @@
 	/** Turnover as the lesser of hires and separations over the year-end stock of formal jobs. */
 	const turnover: Metric = {
 		noun: 'vínculos',
+		of: ofThe('vínculos'),
 		label: 'Rotatividade (%)',
 		unit: 'Menor entre admissões e desligamentos do CAGED, em % dos vínculos ativos da RAIS em 31/12',
 		value: (slice) => {
@@ -69,10 +70,9 @@
 			view={data.turnoverView}
 			metric={turnover}
 			parts={[
-				{ kind: 'serie' },
-				{ kind: 'serie', metric: hires },
-				{ kind: 'mapa' },
-				{ kind: 'dim', dim: 'atividade' }
+				{ kind: 'serie', metrics: [turnover, hires] },
+				{ kind: 'dim', dim: 'atividade', metrics: [turnover, hires] },
+				{ kind: 'mapa', metrics: [turnover, hires] }
 			]}
 			source={topicSource(
 				'caged',
@@ -90,10 +90,9 @@
 			view={data.slaveView}
 			metric={workers}
 			parts={[
-				{ kind: 'serie' },
-				{ kind: 'serie', metric: employers },
-				{ kind: 'mapa' },
-				{ kind: 'dim', dim: 'atividade' }
+				{ kind: 'serie', metrics: [workers, employers] },
+				{ kind: 'dim', dim: 'atividade', metrics: [workers, employers] },
+				{ kind: 'mapa', metrics: [workers, employers] }
 			]}
 			source={topicSource('escravidao', `edição atualizada em ${updated}`)}
 			slug="trabalho-escravo"

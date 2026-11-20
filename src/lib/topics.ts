@@ -22,7 +22,18 @@ export interface Group {
 	sections: readonly Section[];
 }
 
-const ACCIDENT_DIMS: readonly Dimension[] = ['uf', 'sexo', 'idade', 'atividade', 'ocupacao'];
+const ACCIDENT_DIMS: readonly Dimension[] = [
+	'uf',
+	'municipio',
+	'sexo',
+	'idade',
+	'atividade',
+	'ocupacao',
+	'tipo',
+	'agente',
+	'lesao',
+	'parte'
+];
 const HEALTH_DIMS: readonly Dimension[] = ['uf', 'sexo', 'idade', 'raca', 'ocupacao'];
 
 /** The four subject groups, each one page with a section per topic, in menu order. */
@@ -51,6 +62,14 @@ export const GROUPS: readonly Group[] = [
 				year: true
 			},
 			{
+				id: 'municipios',
+				title: 'Municípios',
+				icon: 'map',
+				summary: 'Os municípios com mais acidentes, e o mapa de cada estado município a município.',
+				dims: ACCIDENT_DIMS,
+				year: true
+			},
+			{
 				id: 'atividades',
 				title: 'Atividades e ocupações',
 				icon: 'factory',
@@ -70,17 +89,35 @@ export const GROUPS: readonly Group[] = [
 				id: 'como-acontece',
 				title: 'Como acontece',
 				icon: 'triangle-alert',
-				summary: 'Agente causador, parte do corpo e lesão nos óbitos.',
-				dims: [],
-				year: false
+				summary:
+					'Agente causador, natureza da lesão, parte do corpo e diagnóstico, nos acidentes e nos óbitos.',
+				dims: ACCIDENT_DIMS,
+				year: true
+			},
+			{
+				id: 'quando',
+				title: 'Quando acontece',
+				icon: 'activity',
+				summary: 'Acidentes por mês e por dia da semana, e quem emite a comunicação.',
+				dims: ACCIDENT_DIMS,
+				year: true
+			},
+			{
+				id: 'adolescentes',
+				title: 'Adolescentes',
+				icon: 'user',
+				summary: 'Acidentes de trabalhadores com até 17 anos: onde, em que atividade e como.',
+				dims: ACCIDENT_DIMS.filter((key) => key !== 'idade'),
+				year: true
 			},
 			{
 				id: 'beneficios',
 				title: 'Benefícios',
 				icon: 'wallet',
-				summary: 'O que o INSS concede quando o acidente afasta, deixa sequela ou mata.',
-				dims: [],
-				year: false
+				summary:
+					'Benefícios acidentários concedidos pelo INSS: auxílios, aposentadorias, pensões e auxílio-acidente.',
+				dims: ['uf', 'sexo'],
+				year: true
 			},
 			{
 				id: 'raca-escolaridade',
@@ -122,7 +159,7 @@ export const GROUPS: readonly Group[] = [
 				icon: 'activity',
 				summary:
 					'Agravos de saúde do trabalhador notificados ao SUS, inclusive de quem trabalha sem carteira.',
-				dims: HEALTH_DIMS,
+				dims: [...HEALTH_DIMS, 'agravo'],
 				year: true
 			},
 			{
