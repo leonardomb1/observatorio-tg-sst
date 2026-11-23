@@ -21,8 +21,8 @@ const RateColumns = {
 
 const SELECT_RATES = `ano, ano_status, vinculos_sem_adm_publica, acidentes_sem_adm_publica,
 	obitos_sem_adm_publica, acidentes_por_100mil_vinculos_sem_adm_publica,
-	obitos_por_100mil_vinculos_sem_adm_publica, acidentes, obitos,
-	acidentes_por_100mil_vinculos, obitos_por_100mil_vinculos, pct_nao_alocavel`;
+	obitos_por_100mil_vinculos_sem_adm_publica, acidentes_alocados AS acidentes,
+	obitos_alocados AS obitos, acidentes_por_100mil_vinculos, obitos_por_100mil_vinculos, pct_nao_alocavel`;
 
 /**
  * Rates use the default denominator: formal jobs without public administration
@@ -142,7 +142,8 @@ export const sectorRanking = (query: Query) =>
 		const result = await rows(
 			query,
 			CnaeRow,
-			`SELECT ano, ano_status, cnae_codigo, cnae_descricao, vinculos_ativos, acidentes, obitos,
+			`SELECT ano, ano_status, cnae_codigo, cnae_descricao, vinculos_ativos,
+				acidentes_alocados AS acidentes, obitos_alocados AS obitos,
 				acidentes_por_100mil_vinculos, obitos_por_100mil_vinculos, base_minima
 			FROM taxa_incidencia_cnae WHERE ano = ? AND base_suficiente`,
 			[year]

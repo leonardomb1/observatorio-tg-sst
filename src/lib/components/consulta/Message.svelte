@@ -37,29 +37,47 @@
 
 	const source = $derived(catSource(publishedUntil));
 
-	/** Consecutive reasoning and lookup parts collapse into one "steps" line, as in chat tools. */
+	const isStep = (part: Part | undefined) =>
+		part?.type === 'reasoning' ||
+		part?.type === 'tool-consultar_dados' ||
+		part?.type === 'tool-buscar_documentos' ||
+		part?.type === 'tool-listar_documentos';
+
+	/** The next part that carries content, skipping step boundaries and empty text. */
+	function nextPart(index: number): Part | undefined {
+		return message.parts
+			.slice(index + 1)
+			.find((part) => part.type !== 'step-start' && !(part.type === 'text' && !part.text.trim()));
+	}
+
+	/**
+	 * Consecutive reasoning and lookup parts collapse into one "steps" line, as in chat tools.
+	 * Text written right before a lookup is the model narrating its work, so it goes into the
+	 * steps line too, and only the text after the lookups reads as the answer.
+	 */
 	const segments = $derived.by(() => {
 		const out: Segment[] = [];
-		for (const part of message.parts) {
+		const step = (part: Part) => {
+			const last = out.at(-1);
+			if (last?.kind === 'steps') last.parts.push(part);
+			else out.push({ kind: 'steps', parts: [part] });
+		};
+		message.parts.forEach((part, index) => {
 			if (part.type === 'text') {
-				if (part.text.trim()) out.push({ kind: 'text', text: part.text });
+				if (!part.text.trim()) return;
+				if (isStep(nextPart(index))) step(part);
+				else out.push({ kind: 'text', text: part.text });
 			} else if (part.type === 'tool-mostrar_grafico') {
 				out.push({ kind: 'chart', part });
-			} else if (
-				part.type === 'reasoning' ||
-				part.type === 'tool-consultar_dados' ||
-				part.type === 'tool-buscar_documentos'
-			) {
-				const last = out.at(-1);
-				if (last?.kind === 'steps') last.parts.push(part);
-				else out.push({ kind: 'steps', parts: [part] });
+			} else if (isStep(part)) {
+				step(part);
 			}
-		}
+		});
 		return out;
 	});
 
 	const answerText = $derived(
-		message.parts.map((part) => (part.type === 'text' ? part.text : '')).join('\n\n')
+		segments.map((segment) => (segment.kind === 'text' ? segment.text : '')).join('\n\n')
 	);
 	const hits = $derived(
 		message.parts.flatMap((part) =>

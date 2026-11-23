@@ -1,10 +1,12 @@
 import { tool, type InferUITools } from 'ai';
+import { asc, eq } from 'drizzle-orm';
 import * as z from 'zod';
 import { chartSpec } from '#lib/consulta.ts';
 import { toUf } from '#lib/uf.ts';
 import { MAP_ROWS, MAX_ROWS, readOnly, type QueryResult } from '../catalog/consulta.ts';
 import type { Query } from '../catalog/query.ts';
 import type { Db } from '../db/client.ts';
+import { documents } from '../db/schema.ts';
 import { search } from '../rag/search.ts';
 import type { VoyageConfig } from '../rag/voyage.ts';
 
@@ -91,6 +93,32 @@ export function createTools(deps: ToolDeps, firstRef: number) {
 				type: 'json',
 				value: { exibido: true, ...compact(output) }
 			})
+		}),
+
+		listar_documentos: tool({
+			description:
+				'Lista o acervo de documentos do observatório: as normas regulamentadoras e as notas de referência disponíveis para busca. Use para saber quais ou quantas normas estão na base.',
+			inputSchema: z.object({}),
+			execute: async () => {
+				const rows = await deps.db
+					.select({
+						title: documents.title,
+						kind: documents.kind,
+						collection: documents.collection
+					})
+					.from(documents)
+					.where(eq(documents.status, 'ready'))
+					.orderBy(asc(documents.kind), asc(documents.title));
+				return {
+					total: rows.length,
+					normas: rows.filter((row) => row.kind === 'nr').length,
+					documentos: rows.map((row) => ({
+						titulo: row.title,
+						tipo: row.kind,
+						colecao: row.collection
+					}))
+				};
+			}
 		}),
 
 		buscar_documentos: tool({

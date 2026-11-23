@@ -8,6 +8,9 @@
 	type Part = ConsultaMessage['parts'][number];
 	type Row = Record<string, string | number | null>;
 
+	/** Years, periods and codes are labels: a thousands separator would turn 2022 into 2.022. */
+	const LABEL_COLUMN = /^(ano|mes|periodo)$|^ano_|_ano$|codigo|_iso3$/;
+
 	interface Props {
 		parts: readonly Part[];
 		/** True while this group is the tail of a message that is still streaming. */
@@ -20,7 +23,10 @@
 
 	const tools = $derived(
 		parts.filter(
-			(part) => part.type === 'tool-consultar_dados' || part.type === 'tool-buscar_documentos'
+			(part) =>
+				part.type === 'tool-consultar_dados' ||
+				part.type === 'tool-buscar_documentos' ||
+				part.type === 'tool-listar_documentos'
 		)
 	);
 	const running = $derived(
@@ -36,23 +42,25 @@
 		const last = parts.at(-1);
 		if (last?.type === 'tool-consultar_dados') return 'Consultando o banco de dados';
 		if (last?.type === 'tool-buscar_documentos') return 'Buscando nas normas';
+		if (last?.type === 'tool-listar_documentos') return 'Consultando o acervo';
 		return 'Analisando a pergunta';
 	});
 	const summary = $derived.by(() => {
 		const sources = [
 			tools.some((part) => part.type === 'tool-consultar_dados') ? 'o banco de dados' : null,
-			tools.some((part) => part.type === 'tool-buscar_documentos') ? 'as normas' : null
+			tools.some((part) => part.type === 'tool-buscar_documentos') ? 'as normas' : null,
+			tools.some((part) => part.type === 'tool-listar_documentos') ? 'o acervo' : null
 		].filter((source) => source !== null);
 		return sources.length > 0 ? `Consultou ${listNames(sources)}` : 'Analisou a pergunta';
 	});
 	const failed = $derived(tools.filter((part) => part.state === 'output-error').length);
 
 	function columnsOf(names: readonly string[], rows: readonly Row[]): Column<Row>[] {
-		return names.map((key) => ({
-			key,
-			label: key,
-			numeric: rows.some((row) => typeof row[key] === 'number')
-		}));
+		return names.map((key) =>
+			LABEL_COLUMN.test(key)
+				? { key, label: key, format: (value) => (value === null ? '—' : String(value)) }
+				: { key, label: key, numeric: rows.some((row) => typeof row[key] === 'number') }
+		);
 	}
 </script>
 
@@ -79,7 +87,7 @@
 		<ol class="detail">
 			{#each parts as part, index (index)}
 				<li>
-					{#if part.type === 'reasoning'}
+					{#if part.type === 'reasoning' || part.type === 'text'}
 						{#if part.text.trim()}<p class="note">{part.text}</p>{/if}
 					{:else if part.type === 'tool-consultar_dados'}
 						<p class="label">
@@ -99,6 +107,18 @@
 								columns={columnsOf(part.output.columns, part.output.rows)}
 								rows={part.output.rows}
 							/>
+						{/if}
+					{:else if part.type === 'tool-listar_documentos'}
+						<p class="label">Acervo de documentos</p>
+						{#if part.state === 'output-available'}
+							<p class="note">
+								{formatInteger(part.output.total)}
+								{part.output.total === 1 ? 'documento' : 'documentos'}, dos quais
+								{formatInteger(part.output.normas)}
+								{part.output.normas === 1 ? 'norma regulamentadora' : 'normas regulamentadoras'}
+							</p>
+						{:else if part.state === 'output-error'}
+							<p class="note">A consulta ao acervo falhou.</p>
 						{/if}
 					{:else if part.type === 'tool-buscar_documentos'}
 						<p class="label">Normas: “{part.input?.consulta ?? ''}”</p>
