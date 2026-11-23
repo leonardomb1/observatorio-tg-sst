@@ -30,6 +30,35 @@ describe('parseNr', () => {
 		expect(nr35.slug).toBe('nr-35');
 	});
 
+	it('reads titles that wrap, other heading styles and acronyms', () => {
+		const title = (nr: number, heading: string) =>
+			parseNr(nr, `Este texto não substitui o publicado no DOU\n${heading}\nPublicação D.O.U.\n`)
+				.title;
+		expect(
+			title(
+				31,
+				'NR 31 - SEGURANÇA E SAÚDE NO TRABALHO NA AGRICULTURA, PECUÁRIA,\nSILVICULTURA, EXPLORAÇÃO FLORESTAL E AQUICULTURA'
+			)
+		).toBe(
+			'Segurança e Saúde no Trabalho na Agricultura, Pecuária, Silvicultura, Exploração Florestal e Aquicultura'
+		);
+		expect(title(3, 'NORMA REGULAMENTADORA N.º 03 – EMBARGO E INTERDIÇÃO')).toBe(
+			'Embargo e Interdição'
+		);
+		expect(title(6, 'NR 06 - EQUIPAMENTOS DE PROTEÇÃO INDIVIDUAL - EPI')).toBe(
+			'Equipamentos de Proteção Individual - EPI'
+		);
+		expect(
+			title(
+				10,
+				'NR 10 - SEGURANÇA EM INSTALAÇÕES ELÉTRICAS E SERVIÇOS EM ELETRICIDADE\n(Vigência a partir de 01 de junho de 2027)'
+			)
+		).toBe('Segurança em Instalações Elétricas e Serviços em Eletricidade');
+		expect(title(29, 'NR 29 - SEGURANÇA E SAÚDE NO TRABALHO PORTUÁRIO\nSUMÁRIO')).toBe(
+			'Segurança e Saúde no Trabalho Portuário'
+		);
+	});
+
 	it('detects the NR number from the heading', () => {
 		expect(detectNrNumber(officialText(35))).toBe(35);
 		expect(detectNrNumber('texto sem cabeçalho')).toBeNull();

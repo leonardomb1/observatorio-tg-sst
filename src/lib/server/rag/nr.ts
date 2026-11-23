@@ -34,13 +34,17 @@ const LOWERCASE_WORDS = new Set([
 	'com'
 ]);
 
+const ACRONYMS = new Set(['CIPA', 'EPI', 'PCMSO', 'SESMT']);
+
 function titleCase(text: string): string {
 	return text
 		.toLowerCase()
 		.split(/\s+/)
-		.map((word, index) =>
-			index > 0 && LOWERCASE_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)
-		)
+		.map((word, index) => {
+			if (ACRONYMS.has(word.toUpperCase())) return word.toUpperCase();
+			if (index > 0 && LOWERCASE_WORDS.has(word)) return word;
+			return word.charAt(0).toUpperCase() + word.slice(1);
+		})
 		.join(' ');
 }
 
@@ -75,9 +79,32 @@ function isHeading(blocks: readonly string[]): boolean {
 	);
 }
 
+/**
+ * The title follows the heading ("NR 31 - ..." or "NORMA REGULAMENTADORA N.º 03 – ...") and may wrap
+ * onto the next all-caps line, which it joins when one side of the break is a comma or a connective.
+ */
 function extractTitle(text: string, nr: number): string {
-	const match = new RegExp(`^\\s*NR[\\s-]*0?${nr}\\s*[-–]\\s*(.+)$`, 'im').exec(text);
-	return match?.[1] ? titleCase(match[1].trim()) : `Norma Regulamentadora nº ${nr}`;
+	const heading = new RegExp(
+		`^\\s*(?:NR|NORMA REGULAMENTADORA\\s+N[.º°o]*)[\\s-]*0?${nr}\\s*[-–]\\s*(.+)$`,
+		'i'
+	);
+	const lines = text.split('\n');
+	const start = lines.findIndex((line) => heading.test(line));
+	const first = start === -1 ? null : heading.exec(lines[start] ?? '')?.[1];
+	if (!first) return `Norma Regulamentadora nº ${nr}`;
+	const parts = [first.trim()];
+	const connector = (word: string | undefined) => LOWERCASE_WORDS.has((word ?? '').toLowerCase());
+	for (const line of lines.slice(start + 1)) {
+		const next = line.trim();
+		const previous = parts.at(-1) ?? '';
+		const joins =
+			previous.endsWith(',') ||
+			connector(previous.split(/\s+/).at(-1)) ||
+			connector(next.split(/\s+/)[0]);
+		if (!next || /\p{Ll}/u.test(next) || !joins) break;
+		parts.push(next);
+	}
+	return titleCase(parts.join(' '));
 }
 
 /** Reads the NR number from the heading of the official text ("NR 35 - TRABALHO EM ALTURA"). */

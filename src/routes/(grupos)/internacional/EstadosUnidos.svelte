@@ -2,7 +2,7 @@
 	import Chart from '#lib/charts/Chart.svelte';
 	import { compareLines, yearBars } from '#lib/charts/options.ts';
 	import Panel from '#lib/components/Panel.svelte';
-	import { formatCompact, formatDecimal, formatInteger } from '#lib/format.ts';
+	import { formatCompact, formatDecimal, formatInteger, formatPercent } from '#lib/format.ts';
 	import type { UsaYear } from '#lib/server/catalog/internacional.ts';
 	import { topicSource } from '#lib/sources.ts';
 
@@ -17,7 +17,7 @@
 	);
 	const rated = $derived(years.filter((row) => row.trir !== null));
 	const last = $derived(rated.at(-1));
-	const missing = $derived(years.filter((row) => row.trir === null).map((row) => row.year));
+	const excluded = $derived(years.map((row) => row.excludedShare));
 </script>
 
 <div class="l-grid panels">
@@ -58,10 +58,14 @@
 				casos não é uma série histórica do país. As taxas, que dividem pelas horas trabalhadas nos
 				mesmos estabelecimentos, comparam melhor.
 			</p>
-			{#if missing.length}
+			{#if excluded.length}
 				<p>
-					{missing.join(', ')}: as horas trabalhadas declaradas são implausíveis (somam trilhões), e
-					a taxa fica de fora.
+					Ficam de fora os estabelecimentos com número de empregados ou horas trabalhadas
+					implausíveis (fora de 1 a 100 mil empregados ou de 500 a 4.000 horas por empregado no
+					ano), entre {formatPercent(Math.min(...excluded))} e {formatPercent(
+						Math.max(...excluded)
+					)} dos que reportam a cada ano. Sem esse filtro, um punhado de erros de digitação derrubaria
+					a taxa.
 				</p>
 			{/if}
 		{/snippet}

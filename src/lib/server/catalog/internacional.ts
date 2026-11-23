@@ -101,9 +101,10 @@ const UsaRow = z.object({
 	ano: z.number().int(),
 	mortes: z.number(),
 	casos_registraveis: z.number(),
-	horas_trabalhadas: z.number(),
 	trir: z.number().nullable(),
-	dart: z.number().nullable()
+	dart: z.number().nullable(),
+	estabelecimentos: z.number(),
+	estabelecimentos_excluidos: z.number()
 });
 
 /** Rates above this per 100k workers are publication errors, not risk; they are listed apart. */
@@ -169,14 +170,13 @@ export interface UsaYear {
 	year: number;
 	deaths: number;
 	cases: number;
-	/** Recordable cases per 100 full-time workers; null where reported hours are implausible. */
+	/** Recordable cases per 100 full-time workers. */
 	trir: number | null;
 	/** Cases with days away, restricted or transferred, per 100 full-time workers. */
 	dart: number | null;
+	/** Share of reporting establishments left out for implausible employees or hours. */
+	excludedShare: number;
 }
-
-/** Hours above this mean a unit error in the establishments' reports (2019 sums trillions). */
-const MAX_HOURS = 1e12;
 
 /** Injury Tracking Application totals reported to OSHA by US establishments, per year. */
 export function usaSeries(query: Query) {
@@ -184,17 +184,17 @@ export function usaSeries(query: Query) {
 		const result = await rows(
 			query,
 			UsaRow,
-			'SELECT ano, mortes, casos_registraveis, horas_trabalhadas, trir, dart FROM osha_eua_taxas_ano ORDER BY ano'
+			`SELECT ano, mortes, casos_registraveis, trir, dart, estabelecimentos, estabelecimentos_excluidos
+			FROM osha_eua_taxas_ano ORDER BY ano`
 		);
-		return result.map((row) => {
-			const plausible = row.horas_trabalhadas < MAX_HOURS;
-			return {
-				year: row.ano,
-				deaths: row.mortes,
-				cases: row.casos_registraveis,
-				trir: plausible ? row.trir : null,
-				dart: plausible ? row.dart : null
-			};
-		});
+		return result.map((row) => ({
+			year: row.ano,
+			deaths: row.mortes,
+			cases: row.casos_registraveis,
+			trir: row.trir,
+			dart: row.dart,
+			excludedShare:
+				row.estabelecimentos_excluidos / (row.estabelecimentos + row.estabelecimentos_excluidos)
+		}));
 	})();
 }
